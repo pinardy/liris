@@ -3,8 +3,13 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Served from https://pinardy.github.io/liris/ — every asset, route and
+// service-worker scope is relative to this subpath.
+const BASE = '/liris/'
+
 // https://vite.dev/config/
 export default defineConfig({
+  base: BASE,
   plugins: [
     react(),
     tailwindcss(),
@@ -17,7 +22,8 @@ export default defineConfig({
         description:
           'Free music player: stream Creative Commons music from Jamendo and play your own files, fully offline.',
         display: 'standalone',
-        start_url: '/',
+        start_url: BASE,
+        scope: BASE,
         background_color: '#09090b',
         theme_color: '#09090b',
         icons: [
@@ -30,20 +36,21 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        // Shortcut URLs must sit inside `scope`.
         shortcuts: [
           {
             name: 'Search',
-            url: '/search',
+            url: `${BASE}search`,
             icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }],
           },
           {
             name: 'Your Library',
-            url: '/library',
+            url: `${BASE}library`,
             icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }],
           },
           {
             name: 'Favorites',
-            url: '/favorites',
+            url: `${BASE}favorites`,
             icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }],
           },
         ],

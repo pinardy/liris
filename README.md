@@ -32,6 +32,14 @@ npm run build     # type-check + production build
 npm run preview   # serve the production build — use this to test PWA/offline behavior
 ```
 
+## Deployment
+
+Live at **https://pinardy.github.io/liris/**, deployed by `.github/workflows/deploy.yml` on every push to `main`.
+
+Because it's served from a subpath, `vite.config.ts` sets `base: '/liris/'`, the router uses `basename={import.meta.env.BASE_URL}`, and the manifest's `start_url`/`scope`/shortcuts are all subpath-aware. The dev server therefore also serves at `/liris/` (Vite prints the full URL). The workflow copies `index.html` to `404.html` because GitHub Pages has no SPA rewrite — without it, a hard load of a deep link like `/liris/search` would 404.
+
+`VITE_JAMENDO_CLIENT_ID` is a **repository variable**, not a secret. Vite inlines `VITE_`-prefixed vars into the bundle at build time, so the value is public either way — a secret would imply protection that doesn't exist. See the note above about why that's fine for Jamendo's free tier.
+
 ## Architecture notes
 
 - `src/types/model.ts` — the unified `Track` type. Everything downstream (queue, playlists, favorites, player) is source-agnostic; only `services/jamendo/mappers.ts` and `player/resolveSource.ts` know where audio comes from.
