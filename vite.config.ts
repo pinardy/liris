@@ -17,10 +17,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Liris — Music Player',
+        name: 'Liris Classical',
         short_name: 'Liris',
         description:
-          'Free music player: stream Creative Commons music from Jamendo and play your own files, fully offline.',
+          'A free classical music player: browse the canon by composer, period and form, with public-domain recordings you can keep offline.',
         display: 'standalone',
         start_url: BASE,
         scope: BASE,
@@ -41,6 +41,11 @@ export default defineConfig({
           {
             name: 'Search',
             url: `${BASE}search`,
+            icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }],
+          },
+          {
+            name: 'Composers',
+            url: `${BASE}composers`,
             icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }],
           },
           {

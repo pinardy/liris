@@ -10,10 +10,12 @@ import Library from './pages/Library'
 import Playlists from './pages/Playlists'
 import PlaylistPage from './pages/PlaylistPage'
 import Favorites from './pages/Favorites'
-import AlbumPage from './pages/AlbumPage'
-import ArtistPage from './pages/ArtistPage'
-import ArchiveAlbumPage from './pages/ArchiveAlbumPage'
-import GenrePage from './pages/GenrePage'
+import Composers from './pages/Composers'
+import ComposerPage from './pages/ComposerPage'
+import WorkPage from './pages/WorkPage'
+import BrowsePage from './pages/BrowsePage'
+import CollectionPage from './pages/CollectionPage'
+import Contemporary from './pages/Contemporary'
 
 function App() {
   useKeyboardShortcuts()
@@ -25,15 +27,18 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
+            <Route path="/composers" element={<Composers />} />
+            <Route path="/composer/:slug" element={<ComposerPage />} />
+            <Route path="/work/:id" element={<WorkPage />} />
+            <Route path="/period/:slug" element={<BrowsePage mode="period" />} />
+            <Route path="/form/:slug" element={<BrowsePage mode="form" />} />
+            <Route path="/performer/:slug" element={<BrowsePage mode="performer" />} />
+            <Route path="/collection/:itemId" element={<CollectionPage />} />
+            <Route path="/contemporary" element={<Contemporary />} />
             <Route path="/library" element={<Library />} />
             <Route path="/playlists" element={<Playlists />} />
             <Route path="/playlists/:id" element={<PlaylistPage />} />
             <Route path="/favorites" element={<Favorites />} />
-            <Route path="/album/:id" element={<AlbumPage />} />
-            <Route path="/artist/:id" element={<ArtistPage />} />
-            <Route path="/genre/:tag" element={<GenrePage />} />
-            <Route path="/genre/:tag/:sub" element={<GenrePage />} />
-            <Route path="/archive/:itemId" element={<ArchiveAlbumPage />} />
           </Routes>
         </main>
       </div>

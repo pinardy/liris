@@ -42,21 +42,6 @@ export interface Track {
   addedAt: number
 }
 
-export interface Album {
-  id: string
-  name: string
-  artist: string
-  artistId?: string
-  artworkUrl?: string
-  releaseDate?: string
-}
-
-export interface Artist {
-  id: string
-  name: string
-  imageUrl?: string
-}
-
 export interface Playlist {
   id: string
   name: string

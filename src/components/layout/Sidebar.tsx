@@ -5,11 +5,16 @@ import { navItems } from './navItems'
 export default function Sidebar() {
   return (
     <aside className="hidden w-60 shrink-0 flex-col gap-1 border-r border-zinc-800 bg-black p-4 md:flex">
-      <div className="mb-6 flex items-center gap-2 px-2 text-lg font-bold">
-        <MusicNoteIcon className="text-accent" />
-        liris
+      <div className="mb-6 px-2">
+        <div className="flex items-center gap-2 text-lg font-bold">
+          <MusicNoteIcon className="text-accent" />
+          Liris
+        </div>
+        <p className="mt-0.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+          Classical
+        </p>
       </div>
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-1 flex-col gap-1">
         {navItems.map(({ to, label, icon: ItemIcon }) => (
           <NavLink
             key={to}
@@ -27,6 +32,17 @@ export default function Sidebar() {
             {label}
           </NavLink>
         ))}
+
+        <NavLink
+          to="/contemporary"
+          className={({ isActive }) =>
+            `mt-4 border-t border-zinc-800 px-3 pt-4 text-xs font-medium transition-colors ${
+              isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+            }`
+          }
+        >
+          Contemporary →
+        </NavLink>
       </nav>
     </aside>
   )

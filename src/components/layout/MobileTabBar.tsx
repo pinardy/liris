@@ -4,7 +4,7 @@ import { navItems } from './navItems'
 export default function MobileTabBar() {
   return (
     <nav className="flex border-t border-zinc-800 bg-black md:hidden">
-      {navItems.map(({ to, label, icon: ItemIcon }) => (
+      {navItems.map(({ to, short, icon: ItemIcon }) => (
         <NavLink
           key={to}
           to={to}
@@ -16,7 +16,7 @@ export default function MobileTabBar() {
           }
         >
           <ItemIcon width="22" height="22" />
-          {label.replace('Your ', '')}
+          {short}
         </NavLink>
       ))}
     </nav>

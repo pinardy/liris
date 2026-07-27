@@ -25,49 +25,6 @@ export interface JamendoTrack {
   releasedate?: string
 }
 
-export interface JamendoAlbum {
-  id: string
-  name: string
-  artist_id: string
-  artist_name: string
-  image: string
-  releasedate?: string
-}
-
-export interface JamendoAlbumTrack {
-  id: string
-  name: string
-  duration: number
-  audio: string
-  position: number
-}
-
-export interface JamendoAlbumWithTracks extends JamendoAlbum {
-  tracks: JamendoAlbumTrack[]
-}
-
-export interface JamendoArtist {
-  id: string
-  name: string
-  image: string
-}
-
-export interface JamendoArtistTrack {
-  id: string
-  name: string
-  duration: number
-  audio: string
-  album_id: string | null
-  album_name: string | null
-  album_image: string | null
-  image?: string
-  releasedate?: string
-}
-
-export interface JamendoArtistWithTracks extends JamendoArtist {
-  tracks: JamendoArtistTrack[]
-}
-
 export interface JamendoRadio {
   id: number
   name: string

@@ -1,4 +1,5 @@
 import type { Track } from '../../types/model'
+import type { ParserKind } from './parse'
 
 /**
  * Internet Archive (archive.org) as a source of public-domain classical
@@ -19,42 +20,51 @@ export interface ArchiveCollection {
   name: string
   artist: string
   description: string
-  /** Classical subcategory slugs (see lib/classical.ts) this collection belongs to. */
-  categories: string[]
+  /** How to read composer/work/movement out of this item's file metadata. */
+  parser: ParserKind
+  /** Rights statement shown in the UI; every item must be verifiably free. */
+  license: string
 }
 
 export const classicalCollections: ArchiveCollection[] = [
   {
     itemId: 'MusopenCollectionAsFlac',
     name: 'Musopen Collection',
-    artist: 'Bach · Beethoven · Brahms · Schubert…',
+    artist: 'Czech National Symphony Orchestra & others',
     description:
-      'The Musopen Kickstarter project: professional public-domain recordings of major works by Bach, Beethoven, Brahms, Schubert and more.',
-    categories: ['piano', 'violin', 'orchestra', 'symphony', 'chamber'],
+      'The Musopen Kickstarter project: professional recordings of major works by Bach, Beethoven, Brahms, Borodin, Dvořák and more, released into the public domain.',
+    parser: 'musopen',
+    license: 'Public Domain Mark 1.0',
   },
   {
     itemId: 'musopen-chopin',
     name: 'The Complete Chopin Collection',
     artist: 'Frédéric Chopin',
     description:
-      'Musopen’s complete recordings of Chopin — nocturnes, preludes, études, waltzes and concertos, all public domain.',
-    categories: ['piano'],
+      'Musopen’s complete Chopin recordings — nocturnes, preludes, études, waltzes, ballades and concertos.',
+    parser: 'chopin',
+    license: 'CC0 1.0',
   },
   {
     itemId: 'OpenGoldbergVariations',
     name: 'Open Goldberg Variations',
-    artist: 'J.S. Bach — Kimiko Ishizaka',
+    artist: 'Kimiko Ishizaka',
     description:
-      'Kimiko Ishizaka’s acclaimed CC0 studio recording of Bach’s Goldberg Variations, BWV 988.',
-    categories: ['piano'],
+      'Kimiko Ishizaka’s acclaimed studio recording of Bach’s Goldberg Variations, BWV 988, dedicated to the public domain.',
+    parser: 'goldberg',
+    license: 'CC0 1.0',
   },
   {
     itemId: '100ClassicalMusicMasterpieces',
     name: '100 Classical Music Masterpieces',
-    artist: 'Various composers',
+    artist: 'Various performers',
     description:
-      'A chronological tour through 100 famous classical pieces, from Purcell to the 20th century.',
-    categories: ['orchestra', 'symphony', 'opera'],
+      'A chronological tour through 100 famous pieces, from Purcell to the twentieth century.',
+    parser: 'masterpieces',
+    // NOTE: this item carries no explicit licence on archive.org. The
+    // compositions are long out of copyright, but the recordings' status is
+    // unverified — see README.
+    license: 'Unverified',
   },
 ]
 
@@ -67,6 +77,7 @@ interface ArchiveFile {
   format: string
   title?: string
   creator?: string
+  album?: string
   length?: string
   track?: string
 }
@@ -93,9 +104,37 @@ function titleFromFileName(name: string): string {
   return base.replace(/\.[^.]+$/, '')
 }
 
-function streamUrl(itemId: string, fileName: string): string {
+export function streamUrl(itemId: string, fileName: string): string {
   const encodedPath = fileName.split('/').map(encodeURIComponent).join('/')
   return `https://archive.org/download/${itemId}/${encodedPath}`
+}
+
+export interface ArchiveAudioFile {
+  name: string
+  title?: string
+  creator?: string
+  album?: string
+  durationSec: number
+}
+
+/**
+ * Streamable audio files for an item, sorted by name — filenames embed work and
+ * movement order, so a name sort keeps movements sequential.
+ */
+export async function fetchArchiveFiles(itemId: string): Promise<ArchiveAudioFile[]> {
+  const res = await fetch(`https://archive.org/metadata/${itemId}`)
+  if (!res.ok) throw new Error(`archive.org request failed (HTTP ${res.status})`)
+  const body = (await res.json()) as ArchiveMetadataResponse
+  return (body.files ?? [])
+    .filter((f) => f.format === 'VBR MP3')
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((f) => ({
+      name: f.name,
+      title: f.title,
+      creator: f.creator,
+      album: f.album,
+      durationSec: parseLength(f.length),
+    }))
 }
 
 export async function getArchiveCollectionTracks(

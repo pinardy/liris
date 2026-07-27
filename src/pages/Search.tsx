@@ -1,120 +1,111 @@
 import { Link, useSearchParams } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import PageHeading from '../components/common/PageHeading'
-import MediaCard from '../components/common/MediaCard'
-import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
+import { EmptyState, Spinner } from '../components/common/Status'
 import { SearchIcon } from '../components/common/icons'
+import WorkRow from '../components/classical/WorkRow'
 import TrackList from '../components/tracks/TrackList'
-import { useAsync } from '../hooks/useAsync'
+import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
-import { useGenreOrder } from '../hooks/useGenreOrder'
+import { composerLifespan } from '../lib/composers'
 import { usePlayerStore } from '../player/playerStore'
 import { db } from '../services/db/db'
-import { searchAlbums, searchArtists, searchTracks } from '../services/jamendo/api'
-
-const TABS = ['tracks', 'albums', 'artists'] as const
-type Tab = (typeof TABS)[number]
 
 export default function Search() {
   const [params, setParams] = useSearchParams()
   const query = params.get('q') ?? ''
-  const tab = (params.get('tab') as Tab) || 'tracks'
-  const debouncedQuery = useDebouncedValue(query.trim(), 400)
-  const enabled = debouncedQuery.length > 0
+  const debounced = useDebouncedValue(query.trim().toLowerCase(), 250)
+  const enabled = debounced.length > 0
 
+  const { data: index, loading } = useClassicalIndex()
   const playQueue = usePlayerStore((s) => s.playQueue)
-  const { orderedGenres } = useGenreOrder()
 
-  const tracksState = useAsync(
-    () => searchTracks(debouncedQuery),
-    [debouncedQuery],
-    enabled && tab === 'tracks',
-    `search:tracks:${debouncedQuery}`,
-  )
-  const albumsState = useAsync(
-    () => searchAlbums(debouncedQuery),
-    [debouncedQuery],
-    enabled && tab === 'albums',
-    `search:albums:${debouncedQuery}`,
-  )
-  const artistsState = useAsync(
-    () => searchArtists(debouncedQuery),
-    [debouncedQuery],
-    enabled && tab === 'artists',
-    `search:artists:${debouncedQuery}`,
-  )
-
-  // Unified search: also match the local collection (imported files plus
-  // playlisted/favorited/downloaded track snapshots) stored in Dexie.
+  // Local collection: imported files, downloads and playlisted snapshots.
   const collectionTracks = useLiveQuery(async () => {
-    const q = debouncedQuery.toLowerCase()
-    if (!q) return []
+    if (!enabled) return []
     const all = await db.tracks.toArray()
     return all
       .filter(
         (t) =>
-          t.title.toLowerCase().includes(q) ||
-          t.artist.toLowerCase().includes(q) ||
-          (t.album ?? '').toLowerCase().includes(q),
+          t.title.toLowerCase().includes(debounced) ||
+          t.artist.toLowerCase().includes(debounced) ||
+          (t.album ?? '').toLowerCase().includes(debounced),
       )
-      .slice(0, 10)
-  }, [debouncedQuery])
+      .slice(0, 12)
+  }, [debounced, enabled])
 
-  function update(patch: { q?: string; tab?: Tab }) {
-    const next = new URLSearchParams(params)
-    if (patch.q !== undefined) {
-      if (patch.q) next.set('q', patch.q)
-      else next.delete('q')
-    }
-    if (patch.tab) next.set('tab', patch.tab)
-    setParams(next, { replace: true })
-  }
+  const composers = enabled
+    ? (index?.composers ?? []).filter((c) => c.name.toLowerCase().includes(debounced))
+    : []
+  const works = enabled
+    ? (index?.works ?? [])
+        .filter(
+          (w) =>
+            w.title.toLowerCase().includes(debounced) ||
+            w.composerName.toLowerCase().includes(debounced) ||
+            (w.catalogue ?? '').toLowerCase().includes(debounced),
+        )
+        .slice(0, 40)
+    : []
+
+  const nothing =
+    enabled &&
+    !loading &&
+    composers.length === 0 &&
+    works.length === 0 &&
+    (collectionTracks?.length ?? 0) === 0
 
   return (
     <>
       <PageHeading title="Search" />
 
-      <div className="relative mb-4 max-w-xl">
+      <div className="relative mb-6 max-w-xl">
         <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
         <input
           type="search"
           value={query}
-          onChange={(e) => update({ q: e.target.value })}
-          placeholder="What do you want to listen to?"
+          onChange={(e) => {
+            const next = new URLSearchParams(params)
+            if (e.target.value) next.set('q', e.target.value)
+            else next.delete('q')
+            setParams(next, { replace: true })
+          }}
+          placeholder="Composers, works, opus numbers…"
           autoFocus
           className="w-full rounded-full bg-zinc-800 py-2.5 pl-11 pr-4 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/30"
         />
       </div>
 
-      <div className={`mb-6 flex gap-2 ${enabled ? '' : 'hidden'}`}>
-        {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => update({ tab: t })}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
-              tab === t
-                ? 'bg-white text-black'
-                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
       {!enabled && (
-        <section>
-          <h2 className="mb-3 text-lg font-bold">Browse all</h2>
+        <EmptyState title="Search the catalog">
+          Try a composer (“Chopin”), a work (“Eroica”), or a catalogue number
+          (“BWV 988”).
+        </EmptyState>
+      )}
+
+      {enabled && loading && <Spinner />}
+
+      {composers.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-2 text-lg font-bold">Composers</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {orderedGenres.map((genre) => (
+            {composers.map((entry) => (
               <Link
-                key={genre.tag}
-                to={`/genre/${genre.tag}`}
-                className={`flex aspect-[2/1] items-end rounded-lg bg-gradient-to-br p-3 transition-transform hover:scale-[1.02] ${genre.color}`}
+                key={entry.slug}
+                to={`/composer/${entry.slug}`}
+                className="flex items-center gap-3 rounded-lg bg-zinc-900/60 p-3 transition-colors hover:bg-zinc-800"
               >
-                <span className="text-lg font-bold text-white drop-shadow">
-                  {genre.label}
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-800 to-zinc-800 text-sm font-bold text-indigo-200">
+                  {(entry.composer?.surname ?? entry.name).slice(0, 2)}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">
+                    {entry.name}
+                  </span>
+                  <span className="block truncate text-[11px] text-zinc-500">
+                    {entry.composer ? composerLifespan(entry.composer) : ''} ·{' '}
+                    {entry.works.length} works
+                  </span>
                 </span>
               </Link>
             ))}
@@ -122,77 +113,31 @@ export default function Search() {
         </section>
       )}
 
-      {enabled && tab === 'tracks' && (
-        <>
-          {collectionTracks && collectionTracks.length > 0 && (
-            <section className="mb-8">
-              <h2 className="mb-2 text-lg font-bold">From your collection</h2>
-              <TrackList
-                tracks={collectionTracks}
-                onPlay={(i) => playQueue(collectionTracks, i)}
-              />
-              <h2 className="mb-2 mt-8 text-lg font-bold">From Jamendo</h2>
-            </section>
-          )}
-          {tracksState.loading && <Spinner />}
-          {tracksState.error && <ErrorMessage error={tracksState.error} />}
-          {tracksState.data &&
-            (tracksState.data.length > 0 ? (
-              <TrackList
-                tracks={tracksState.data}
-                onPlay={(i) => playQueue(tracksState.data!, i)}
-              />
-            ) : (
-              <EmptyState title={`No tracks found for “${debouncedQuery}”`} />
+      {works.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-2 text-lg font-bold">Works</h2>
+          <div className="flex flex-col">
+            {works.map((work) => (
+              <WorkRow key={work.id} work={work} showComposer />
             ))}
-        </>
+          </div>
+        </section>
       )}
 
-      {enabled && tab === 'albums' && (
-        <>
-          {albumsState.loading && <Spinner />}
-          {albumsState.error && <ErrorMessage error={albumsState.error} />}
-          {albumsState.data &&
-            (albumsState.data.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                {albumsState.data.map((album) => (
-                  <MediaCard
-                    key={album.id}
-                    to={`/album/${album.id}`}
-                    title={album.name}
-                    subtitle={album.artist}
-                    imageUrl={album.artworkUrl}
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyState title={`No albums found for “${debouncedQuery}”`} />
-            ))}
-        </>
+      {collectionTracks && collectionTracks.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-2 text-lg font-bold">From your collection</h2>
+          <TrackList
+            tracks={collectionTracks}
+            onPlay={(i) => playQueue(collectionTracks, i)}
+          />
+        </section>
       )}
 
-      {enabled && tab === 'artists' && (
-        <>
-          {artistsState.loading && <Spinner />}
-          {artistsState.error && <ErrorMessage error={artistsState.error} />}
-          {artistsState.data &&
-            (artistsState.data.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                {artistsState.data.map((artist) => (
-                  <MediaCard
-                    key={artist.id}
-                    to={`/artist/${artist.id}`}
-                    title={artist.name}
-                    subtitle="Artist"
-                    imageUrl={artist.imageUrl}
-                    round
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyState title={`No artists found for “${debouncedQuery}”`} />
-            ))}
-        </>
+      {nothing && (
+        <EmptyState title={`Nothing found for “${query.trim()}”`}>
+          Try a different spelling, or browse by composer instead.
+        </EmptyState>
       )}
     </>
   )

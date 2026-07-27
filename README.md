@@ -1,14 +1,38 @@
-# liris — Free Music Player PWA
+# Liris Classical
 
-A free, Spotify-like music player built with React + TypeScript. Installable as a PWA, works offline, and costs nothing to run — there is no backend.
+A free, installable classical music player built with React + TypeScript. Browse the canon the way a classical listener actually thinks about it — by **composer**, **period**, **form** and **performer**, with **works** modelled separately from the **recordings** of them. No backend, no accounts, no cost.
 
-Music comes from three legal, free sources:
+Live at **https://pinardy.github.io/liris/**
 
-1. **Jamendo** — a catalog of ~500k Creative Commons tracks, streamed via the free [Jamendo API](https://developer.jamendo.com/v3.0) (search, albums, artists, trending, genres).
-2. **Internet Archive** — curated public-domain classical recordings (the Musopen collections, the Open Goldberg Variations, 100 Classical Masterpieces), streamed from archive.org. Surfaced under the Classical genre; the allowlist lives in `src/services/archive/api.ts`.
-3. **Your own files** — import MP3/FLAC/M4A/OGG from your device. They're stored in the browser (IndexedDB), indexed with proper tags and cover art, and play fully offline. Files never leave your device.
+## Where the music comes from
 
-Playlists, favorites, and recently-played are stored locally in IndexedDB. No accounts, no tracking.
+**Public-domain classical recordings** from the Internet Archive, indexed into a proper classical catalog at runtime:
+
+| Collection | Movements | Licence |
+|---|---|---|
+| [Musopen Collection](https://archive.org/details/MusopenCollectionAsFlac) | 145 | Public Domain Mark 1.0 |
+| [The Complete Chopin Collection](https://archive.org/details/musopen-chopin) | 104 | CC0 1.0 |
+| [Open Goldberg Variations](https://archive.org/details/OpenGoldbergVariations) | 31 | CC0 1.0 |
+| [100 Classical Music Masterpieces](https://archive.org/details/100ClassicalMusicMasterpieces) | 100 | ⚠️ unverified |
+
+That indexes to roughly **230 works by 34 composers**. Bach's Goldberg Variations appears with **two recordings** (Shelley Katz and Kimiko Ishizaka), which is the case the work/recording split exists for.
+
+> **⚠️ Licence caveat.** The first three collections are explicitly public domain or CC0. The *100 Masterpieces* upload carries **no licence statement** on archive.org — the compositions are long out of copyright, but the status of those particular recordings is unverified, and the app labels it as such on its collection page. To be strictly clean, drop it from `classicalCollections` in `src/services/archive/api.ts`; the catalog falls to ~280 movements.
+>
+> Deliberately excluded: archive.org's `unlockedrecordings` / `album_recordings` LP rips. They have far better metadata but carry no licence and are digitised commercial records.
+
+**Two secondary strands:** a *Contemporary* section (living independent composers via Jamendo's Creative Commons catalog) and **your own files** — import MP3/FLAC/M4A/OGG, stored in the browser and played fully offline.
+
+## How the classical model works
+
+The interesting part is `src/services/archive/`. Each source collection labels its files differently, so each gets its own reader in `parse.ts`:
+
+- **Musopen** — `Composer - Work - NN - Movement`, though the movement number's position varies; the performing ensemble is a separate field.
+- **Chopin** — titles live only in filenames; the whole set is one composer.
+- **Open Goldberg** — the work is in the album field, each file is a variation.
+- **100 Masterpieces** — mixed conventions (`YEAR Composer / Work`, `YEAR Composer- Work`, or no composer at all), so the composer is found by scanning filenames against the composer table, with a curated fallback for a handful of unattributed Mozart pieces.
+
+`classicalIndex.ts` then groups parsed rows into works, and works into recordings (one per source collection). Work identity is a slug of composer + title, which is what lets `Goldberg Variations, BWV. 988` and `… BWV 988` merge into one work with two recordings. `src/lib/composers.ts` supplies dates, periods and nationalities the source data never provides, plus alias matching (`J.S. Bach`, `Bach`, `Bach , Oboe Concerto…`) and repair for double-encoded metadata (some names arrive as UTF-8 read as Windows-1252).
 
 ## Setup
 
@@ -16,50 +40,40 @@ Playlists, favorites, and recently-played are stored locally in IndexedDB. No ac
 npm install
 ```
 
-Get a free Jamendo `client_id` at <https://devportal.jamendo.com/> (instant signup), then put it in `.env.local`:
+Get a free Jamendo `client_id` at <https://devportal.jamendo.com/> — only needed for the Contemporary section and radio — and put it in `.env.local`:
 
 ```
 VITE_JAMENDO_CLIENT_ID=your_client_id_here
 ```
 
-> The client_id is baked into the client bundle and **intentionally public** — it's a usage identifier for Jamendo's free tier, not a secret. Don't "fix" this by moving it server-side; there is no server.
-
-## Develop
+The classical catalog needs no API key. The client_id is baked into the bundle and intentionally public: it's a usage identifier for Jamendo's free tier, not a secret.
 
 ```bash
-npm run dev       # dev server (service worker disabled)
+npm run dev       # dev server (note: serves at /liris/)
 npm run build     # type-check + production build
-npm run preview   # serve the production build — use this to test PWA/offline behavior
+npm run preview   # production build — use this to test PWA/offline behaviour
 ```
+
+## Player features
+
+Playlists, favorites and recently-played live in IndexedDB. Full queue with drag-to-reorder, play-next, shuffle and repeat; Media Session lock-screen controls; offline downloads; sleep timer; an opt-in Web Audio equalizer with spectrum visualiser; JSON backup/restore; and a responsive layout with a mobile full-screen now-playing view.
 
 ## Deployment
 
-Live at **https://pinardy.github.io/liris/**, deployed by `.github/workflows/deploy.yml` on every push to `main`.
-
-Because it's served from a subpath, `vite.config.ts` sets `base: '/liris/'`, the router uses `basename={import.meta.env.BASE_URL}`, and the manifest's `start_url`/`scope`/shortcuts are all subpath-aware. The dev server therefore also serves at `/liris/` (Vite prints the full URL). The workflow copies `index.html` to `404.html` because GitHub Pages has no SPA rewrite — without it, a hard load of a deep link like `/liris/search` would 404.
-
-`VITE_JAMENDO_CLIENT_ID` is a **repository variable**, not a secret. Vite inlines `VITE_`-prefixed vars into the bundle at build time, so the value is public either way — a secret would imply protection that doesn't exist. See the note above about why that's fine for Jamendo's free tier.
-
-## Architecture notes
-
-- `src/types/model.ts` — the unified `Track` type. Everything downstream (queue, playlists, favorites, player) is source-agnostic; only `services/jamendo/mappers.ts` and `player/resolveSource.ts` know where audio comes from.
-- `src/player/audioEngine.ts` — a singleton `HTMLAudioElement` living outside React. Store actions send commands in; element events sync state back into the Zustand store (`playerStore.ts`). `timeupdate` writes are throttled and only the seek bar subscribes to position, so playback doesn't re-render the app.
-- `src/services/db/db.ts` — Dexie schema. Audio/artwork blobs live in separate tables from track metadata so listing the library never touches file bytes. Jamendo tracks added to playlists/favorites are snapshotted into the `tracks` table so those views render offline.
-- Local file import (`services/localImport/`) parses tags with `music-metadata` (dynamically imported — it never loads unless you import files), downscales cover art to ≤512px JPEG, dedupes by filename+size, and requests persistent storage.
-- **Service worker** (vite-plugin-pwa/Workbox): precaches the app shell, `NetworkFirst` for Jamendo API responses, `CacheFirst` for artwork. Audio stream URLs are deliberately **not** routed through the SW — they rely on HTTP Range requests for seeking, which cached responses would break.
+`.github/workflows/deploy.yml` builds and deploys to GitHub Pages on every push to `main`. Because it's served from a subpath, `vite.config.ts` sets `base: '/liris/'`, the router takes its `basename` from `import.meta.env.BASE_URL`, and the workflow copies `index.html` to `404.html` (GitHub Pages has no SPA rewrite, so deep links would 404 without it). `VITE_JAMENDO_CLIENT_ID` is a repository **variable**, not a secret, for the reason above.
 
 ## Background playback on mobile
 
-Install to the home screen for the best results (Chrome: install prompt; iOS Safari: Share → Add to Home Screen).
+Install to the home screen for best results (Chrome: install prompt; iOS Safari: Share → Add to Home Screen).
 
-- **Android**: audio continues when backgrounded or the screen locks, with a media notification and hardware-button support via the Media Session API.
-- **iOS**: works in an installed home-screen app but is best-effort — iOS suspends backgrounded web apps more aggressively than Android, and behavior varies by version.
-- **Leave the equalizer off for lock-screen listening.** Enabling it routes audio through a Web Audio `AudioContext`, which mobile browsers suspend when the app is backgrounded; plain element playback survives backgrounding, Web Audio often doesn't. The panel warns about this on iOS, and the context is resumed automatically when the app returns to the foreground. Radio streams always bypass the graph.
+- **Android**: audio continues when backgrounded or locked, with a media notification and hardware-button support.
+- **iOS**: works in an installed home-screen app but is best-effort — iOS suspends backgrounded web apps more aggressively, and behaviour varies by version.
+- **Leave the equalizer off for lock-screen listening.** It routes audio through a Web Audio `AudioContext`, which mobile browsers suspend when backgrounded; plain element playback survives, Web Audio often doesn't. The panel warns about this on iOS, and the context is resumed on foregrounding. Radio streams always bypass the graph.
 - The sleep timer is wall-clock based (checked on media `timeupdate` and on foregrounding), so throttled background timers can't make it fire late.
 
 ## Known platform caveats
 
-- **iOS**: programmatic volume is ignored (the slider is hidden on iOS); lock-screen controls in installed-PWA mode are best-effort.
-- **Safari** may evict IndexedDB after 7 days of non-use for non-installed web apps — installing the app to the home screen protects the library.
-- Folder import is desktop-only (`webkitdirectory`); on mobile use multi-file select.
-- Jamendo's free tier has a monthly request quota; search is debounced and API responses are cached by the service worker to stay well under it.
+- **iOS**: programmatic volume is ignored, so the volume slider is hidden there.
+- **Safari** may evict IndexedDB after 7 days of non-use for non-installed apps — installing protects your library.
+- Folder import is desktop-only (`webkitdirectory`); mobile uses multi-file select.
+- Audio streams deliberately bypass the service worker: they rely on HTTP Range requests, which a cached response would break.

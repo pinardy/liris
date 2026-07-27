@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --color-accent: #1db954;
-  --color-accent-hover: #1ed760;
+  /* Warm gold rather than streaming-service green — this is a classical app. */
+  --color-accent: #d9a94a;
+  --color-accent-hover: #e8bd66;
   --color-surface: #18181b;
   --color-surface-raised: #27272a;
 }
