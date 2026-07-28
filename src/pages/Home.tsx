@@ -8,11 +8,13 @@ import WorkCard from '../components/classical/WorkCard'
 import TrackList from '../components/tracks/TrackList'
 import { useAsync } from '../hooks/useAsync'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
-import { forms } from '../lib/classical'
+import { forms, workTracks } from '../lib/classical'
 import { composerLifespan, periods } from '../lib/composers'
+import { dailyMixWorks } from '../lib/dailyMix'
 import { instruments, roleLabels } from '../lib/performers'
 import { usePlayerStore } from '../player/playerStore'
 import { getRecentTracks } from '../services/db/recents'
+import { getListeningStats } from '../services/db/stats'
 import {
   archiveThumbnail,
   classicalCollections,
@@ -23,8 +25,13 @@ export default function Home() {
   const { data: index, error, loading } = useClassicalIndex()
   const recentTracks = useLiveQuery(() => getRecentTracks(6), [])
   const radiosState = useAsync(() => getRadios(12), [], true, 'home:radios')
+  const statsState = useAsync(getListeningStats, [], true, 'home:stats')
   const playQueue = usePlayerStore((s) => s.playQueue)
   const playTrack = usePlayerStore((s) => s.playTrack)
+  const startRadio = usePlayerStore((s) => s.startRadio)
+
+  const mixWorks =
+    index && statsState.data ? dailyMixWorks(index, statsState.data) : []
 
   async function playRadio(station: RadioStation) {
     try {
@@ -68,13 +75,48 @@ export default function Home() {
       {loading && <Spinner />}
       {error && <ErrorMessage error={error} />}
 
+      {index && index.failedCollections.length > 0 && (
+        <p className="mb-6 rounded-lg border border-amber-900/50 bg-amber-950/30 p-3 text-sm text-amber-200/90">
+          Couldn't load {index.failedCollections.join(', ')} — some works may be
+          missing until the next refresh.
+        </p>
+      )}
+
+      {mixWorks.length > 0 && (
+        <section className="mb-10">
+          <div className="flex items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-zinc-900 to-zinc-900 p-5 md:p-6">
+            <div>
+              <h2 className="text-base font-bold md:text-lg">Your Daily Mix</h2>
+              <p className="mt-1 text-sm text-zinc-400">
+                {mixWorks.length} works around{' '}
+                {[...new Set(mixWorks.map((w) => w.composerName))].slice(0, 3).join(', ')}
+                {' '}— rebuilt every day from your listening.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => startRadio(mixWorks.map(workTracks))}
+              aria-label="Play your daily mix"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform hover:scale-105"
+            >
+              <PlayIcon width="18" height="18" className="translate-x-px" />
+            </button>
+          </div>
+        </section>
+      )}
+
       {recentTracks && recentTracks.length > 0 && (
         <section className="mb-10">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-lg font-bold">Continue listening</h2>
-            <Link to="/stats" className="text-xs text-zinc-400 hover:text-white">
-              Your stats →
-            </Link>
+            <span className="flex gap-3 text-xs">
+              <Link to="/history" className="text-zinc-400 hover:text-white">
+                History →
+              </Link>
+              <Link to="/stats" className="text-zinc-400 hover:text-white">
+                Your stats →
+              </Link>
+            </span>
           </div>
           <TrackList tracks={recentTracks} onPlay={(i) => playQueue(recentTracks, i)} />
         </section>
