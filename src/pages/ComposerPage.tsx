@@ -1,6 +1,7 @@
 import { useParams } from 'react-router'
 import { Link } from 'react-router'
 import { PlayIcon } from '../components/common/icons'
+import StartRadioButton from '../components/common/StartRadioButton'
 import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
 import ComposerAvatar from '../components/classical/ComposerAvatar'
 import WorkRow from '../components/classical/WorkRow'
@@ -56,15 +57,18 @@ export default function ComposerPage() {
           <p className="mt-1 text-sm text-zinc-400">
             {entry.works.length} works · {entry.trackCount} movements
           </p>
-          <button
-            type="button"
-            onClick={() => playQueue(allTracks, 0)}
-            disabled={allTracks.length === 0}
-            className="mt-4 flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-black transition-colors hover:bg-accent-hover disabled:opacity-50"
-          >
-            <PlayIcon width="16" height="16" />
-            Play all
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => playQueue(allTracks, 0)}
+              disabled={allTracks.length === 0}
+              className="flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-black transition-colors hover:bg-accent-hover disabled:opacity-50"
+            >
+              <PlayIcon width="16" height="16" />
+              Play all
+            </button>
+            <StartRadioButton tracks={allTracks} />
+          </div>
         </div>
       </div>
 

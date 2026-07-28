@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { Track } from '../types/model'
 import * as engine from './audioEngine'
-import { nextIndex, prevIndex, shuffleQueue, type RepeatMode } from './queue'
+import { nextIndex, prevIndex, shuffled, shuffleQueue, type RepeatMode } from './queue'
 
 const VOLUME_KEY = 'player-volume'
 
@@ -30,6 +30,12 @@ export interface PlayerState {
 
   playQueue: (tracks: Track[], startIndex?: number) => void
   playTrack: (track: Track) => void
+  /**
+   * Radio mode: shuffle the pool into the queue and loop it endlessly.
+   * Turns repeat to 'all' (that's what makes it endless) and leaves the
+   * shuffle toggle off — the queue itself is already shuffled.
+   */
+  startRadio: (tracks: Track[]) => void
   togglePlay: () => void
   next: (auto?: boolean) => void
   prev: () => void
@@ -97,6 +103,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     playTrack: (track) => get().playQueue([track], 0),
+
+    startRadio: (tracks) => {
+      if (tracks.length === 0) return
+      set({
+        queue: shuffled(tracks),
+        originalQueue: null,
+        shuffle: false,
+        repeat: 'all',
+      })
+      startTrack(0)
+    },
 
     togglePlay: () => {
       const { isPlaying, queue, currentIndex } = get()

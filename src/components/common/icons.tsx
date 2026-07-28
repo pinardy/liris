@@ -218,3 +218,15 @@ export function MusicNoteIcon(props: IconProps) {
     </Icon>
   )
 }
+
+export function BroadcastIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="2" />
+      <path d="M7.8 7.8a6 6 0 0 0 0 8.4" />
+      <path d="M16.2 7.8a6 6 0 0 1 0 8.4" />
+      <path d="M4.9 4.9a10 10 0 0 0 0 14.2" />
+      <path d="M19.1 4.9a10 10 0 0 1 0 14.2" />
+    </Icon>
+  )
+}
