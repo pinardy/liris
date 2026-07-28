@@ -1,5 +1,5 @@
 import type { Track } from '../types/model'
-import type { Period } from './composers'
+import { findComposer, type Period } from './composers'
 
 /** Musical forms we can reliably detect from work titles. */
 export interface Form {
@@ -143,6 +143,18 @@ export interface Work {
 /** Every track of a work's preferred recording. */
 export function workTracks(work: Work): Track[] {
   return work.recordings[0]?.tracks ?? []
+}
+
+/**
+ * Reconstruct the catalog work id for a playing archive track, so the player
+ * can link to the work page without loading the whole index. Mirrors the id
+ * scheme in classicalIndex (`composerSlug--workSlug`; track.album carries the
+ * normalized work title). A miss just lands on WorkPage's not-found state.
+ */
+export function workIdForTrack(track: Track): string | undefined {
+  if (track.source !== 'archive' || !track.album) return undefined
+  const composer = findComposer(track.artist)
+  return `${composer?.slug ?? slugify(track.artist)}--${slugify(track.album)}`
 }
 
 export function workDuration(work: Work): number {

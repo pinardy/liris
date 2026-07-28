@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
+import { workIdForTrack } from '../../lib/classical'
 import { usePlayerStore, selectCurrentTrack } from '../../player/playerStore'
 import ArtworkImage from '../common/ArtworkImage'
 import {
@@ -32,6 +34,7 @@ export default function PlayerBar() {
   const [queueOpen, setQueueOpen] = useState(false)
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false)
   const artworkUrl = useTrackArtwork(track)
+  const workId = track ? workIdForTrack(track) : undefined
 
   if (!track) {
     return (
@@ -51,24 +54,45 @@ export default function PlayerBar() {
       {queueOpen && <QueuePanel onClose={() => setQueueOpen(false)} />}
       {nowPlayingOpen && <NowPlayingSheet onClose={() => setNowPlayingOpen(false)} />}
       <footer className="grid h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 border-t border-zinc-800 bg-zinc-900 px-4 md:grid-cols-[1fr_2fr_1fr]">
-        {/* Now playing — tapping opens the full-screen view on mobile */}
-        <button
-          type="button"
-          onClick={() => setNowPlayingOpen(true)}
-          className="flex min-w-0 items-center gap-3 text-left md:pointer-events-none"
-          aria-label="Open now playing"
-        >
-          <ArtworkImage src={artworkUrl} className="size-12" />
+        {/* Now playing — artwork/title open the full-screen view on mobile;
+            the work line links to its page (links can't nest in the button). */}
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setNowPlayingOpen(true)}
+            className="shrink-0 md:pointer-events-none"
+            aria-label="Open now playing"
+          >
+            <ArtworkImage src={artworkUrl} className="size-12" />
+          </button>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{track.title}</p>
+            <button
+              type="button"
+              onClick={() => setNowPlayingOpen(true)}
+              className="block max-w-full truncate text-left text-sm font-medium md:pointer-events-none"
+            >
+              {track.title}
+            </button>
             <p className="truncate text-xs text-zinc-400">
               {/* A movement title alone ('III. Allegro') is meaningless — name the work. */}
-              {track.album && track.album !== track.title
-                ? `${track.album} · ${track.artist}`
-                : track.artist}
+              {track.album && track.album !== track.title ? (
+                <>
+                  {workId ? (
+                    <Link to={`/work/${workId}`} className="hover:text-white hover:underline">
+                      {track.album}
+                    </Link>
+                  ) : (
+                    track.album
+                  )}
+                  {' · '}
+                  {track.artist}
+                </>
+              ) : (
+                track.artist
+              )}
             </p>
           </div>
-        </button>
+        </div>
 
         {/* Controls + seek */}
         <div className="flex flex-col items-center gap-1">
