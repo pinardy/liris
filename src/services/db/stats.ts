@@ -31,10 +31,12 @@ export interface ListeningStats {
   topComposers: ComposerStat[]
   topWorks: WorkStat[]
   byPeriod: PeriodStat[]
+  /** Plays per local calendar day, keyed by dayKey() — feeds the heatmap. */
+  playsByDay: Map<string, number>
 }
 
 /** Local calendar day, so late-night listening counts for the right day. */
-function dayKey(ts: number): string {
+export function dayKey(ts: number): string {
   const d = new Date(ts)
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 }
@@ -46,13 +48,14 @@ export async function getListeningStats(): Promise<ListeningStats> {
   const byComposer = new Map<string, ComposerStat>()
   const byWork = new Map<string, WorkStat>()
   const byPeriod = new Map<Period | 'Other', number>()
-  const days = new Set<string>()
+  const playsByDay = new Map<string, number>()
   let totalSec = 0
   let firstPlayAt: number | null = null
 
   for (const p of plays) {
     totalSec += p.durationSec
-    days.add(dayKey(p.playedAt))
+    const day = dayKey(p.playedAt)
+    playsByDay.set(day, (playsByDay.get(day) ?? 0) + 1)
     if (firstPlayAt === null || p.playedAt < firstPlayAt) firstPlayAt = p.playedAt
 
     const composer = findComposer(p.composer)
@@ -78,8 +81,8 @@ export async function getListeningStats(): Promise<ListeningStats> {
   // streak that ran through yesterday.
   let dayStreak = 0
   const cursor = new Date()
-  if (!days.has(dayKey(cursor.getTime()))) cursor.setDate(cursor.getDate() - 1)
-  while (days.has(dayKey(cursor.getTime()))) {
+  if (!playsByDay.has(dayKey(cursor.getTime()))) cursor.setDate(cursor.getDate() - 1)
+  while (playsByDay.has(dayKey(cursor.getTime()))) {
     dayStreak++
     cursor.setDate(cursor.getDate() - 1)
   }
@@ -91,7 +94,7 @@ export async function getListeningStats(): Promise<ListeningStats> {
     distinctComposers: byComposer.size,
     firstPlayAt,
     dayStreak,
-    daysActive: days.size,
+    daysActive: playsByDay.size,
     topComposers: [...byComposer.values()]
       .sort((a, b) => b.plays - a.plays || a.name.localeCompare(b.name))
       .slice(0, 8),
@@ -101,5 +104,24 @@ export async function getListeningStats(): Promise<ListeningStats> {
     byPeriod: [...byPeriod.entries()]
       .map(([period, count]) => ({ period, plays: count }))
       .sort((a, b) => b.plays - a.plays),
+    playsByDay,
   }
+}
+
+/** How many movements by this (curated) composer the user has played. */
+export async function getComposerPlayCount(slug: string): Promise<number> {
+  const plays = await db.plays.toArray()
+  // Memoize name→match per distinct string: findComposer's fallback scan is
+  // too slow to run once per row.
+  const matches = new Map<string, boolean>()
+  let count = 0
+  for (const p of plays) {
+    let hit = matches.get(p.composer)
+    if (hit === undefined) {
+      hit = findComposer(p.composer)?.slug === slug
+      matches.set(p.composer, hit)
+    }
+    if (hit) count++
+  }
+  return count
 }

@@ -1,3 +1,4 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useParams } from 'react-router'
 import { Link } from 'react-router'
 import AboutBlurb from '../components/common/AboutBlurb'
@@ -11,12 +12,17 @@ import { formBySlug, workTracks } from '../lib/classical'
 import { composerLifespan } from '../lib/composers'
 import { imslpSearchUrl } from '../lib/imslp'
 import { usePlayerStore } from '../player/playerStore'
+import { getComposerPlayCount } from '../services/db/stats'
 import { fetchSummary } from '../services/wikipedia'
 
 export default function ComposerPage() {
   const { slug } = useParams()
   const { data: index, error, loading } = useClassicalIndex()
   const playQueue = usePlayerStore((s) => s.playQueue)
+  const playCount = useLiveQuery(
+    () => (slug ? getComposerPlayCount(slug) : Promise.resolve(0)),
+    [slug],
+  )
 
   if (loading) return <Spinner />
   if (error) return <ErrorMessage error={error} />
@@ -59,6 +65,14 @@ export default function ComposerPage() {
           )}
           <p className="mt-1 text-sm text-zinc-400">
             {entry.works.length} works · {entry.trackCount} movements
+            {playCount !== undefined && playCount > 0 && (
+              <>
+                {' · '}
+                <Link to="/stats" className="hover:underline" title="Your listening stats">
+                  played {playCount} {playCount === 1 ? 'time' : 'times'} by you
+                </Link>
+              </>
+            )}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button
