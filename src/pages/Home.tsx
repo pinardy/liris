@@ -144,6 +144,25 @@ export default function Home() {
           </section>
 
           <section className="mb-10">
+            <Link
+              to="/quiz"
+              className="group flex items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-violet-950 via-zinc-900 to-zinc-900 p-5 transition-colors hover:from-violet-900 md:p-6"
+            >
+              <span>
+                <span className="block text-base font-bold md:text-lg">
+                  Guess the composer
+                </span>
+                <span className="mt-1 block text-sm text-zinc-400">
+                  Ten blind clips from the catalog. How good is your ear?
+                </span>
+              </span>
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform group-hover:scale-105">
+                <PlayIcon width="18" height="18" className="translate-x-px" />
+              </span>
+            </Link>
+          </section>
+
+          <section className="mb-10">
             <h2 className="mb-3 text-lg font-bold">Essential works</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
               {index.works.slice(0, 12).map((work) => (
