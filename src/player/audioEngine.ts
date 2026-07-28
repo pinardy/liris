@@ -244,12 +244,21 @@ export function seek(sec: number): void {
   updatePositionState(active)
 }
 
+/** 1 = normal; ramped toward 0 by the sleep timer's final fade. */
+let sleepFade = 1
+
 export function setVolume(volume: number, muted: boolean): void {
   for (const el of [audio, audioAlt, radioAudio]) {
     if (!el) continue
-    el.volume = volume
+    el.volume = volume * sleepFade
     el.muted = muted
   }
+}
+
+/** Scale playback volume without touching the user's volume setting. */
+export function setSleepFade(factor: number): void {
+  sleepFade = Math.min(1, Math.max(0, factor))
+  applyVolume()
 }
 
 function applyVolume() {

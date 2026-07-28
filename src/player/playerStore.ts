@@ -63,6 +63,11 @@ export interface PlayerState {
 
 let sleepTimeout: ReturnType<typeof setTimeout> | null = null
 
+/** The sleep timer's final seconds ramp the volume down instead of cutting
+ *  off mid-phrase. Driven by checkSleepTimer, which media events keep calling
+ *  even when background timers are throttled. */
+const SLEEP_FADE_MS = 20_000
+
 export const usePlayerStore = create<PlayerState>((set, get) => {
   function startTrack(index: number) {
     const track = get().queue[index]
@@ -259,6 +264,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         clearTimeout(sleepTimeout)
         sleepTimeout = null
       }
+      // A new (or cancelled) timer undoes any fade already in progress.
+      engine.setSleepFade(1)
       if (option === null) {
         set({ sleepTimerEndsAt: null, sleepAtTrackEnd: false })
         return
@@ -276,12 +283,20 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
     checkSleepTimer: () => {
       const { sleepTimerEndsAt } = get()
-      if (sleepTimerEndsAt === null || Date.now() < sleepTimerEndsAt) return
+      if (sleepTimerEndsAt === null) return
+      const remaining = sleepTimerEndsAt - Date.now()
+      if (remaining > SLEEP_FADE_MS) return
+      if (remaining > 0) {
+        engine.setSleepFade(remaining / SLEEP_FADE_MS)
+        return
+      }
       if (sleepTimeout) {
         clearTimeout(sleepTimeout)
         sleepTimeout = null
       }
       engine.pause()
+      // Restore full volume once paused, so a later resume isn't silent.
+      engine.setSleepFade(1)
       set({ sleepTimerEndsAt: null })
     },
   }
