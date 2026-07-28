@@ -156,10 +156,15 @@ function fold(s: string): string {
  */
 export function findTerms(texts: string[]): MusicalTerm[] {
   const hay = fold(texts.join('\n'))
-  return musicalTerms.filter((t) => {
+  const matched = musicalTerms.filter((t) => {
     const pattern = fold(t.term)
       .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       .replace(/ /g, '[\\s-]+')
     return new RegExp(`(?<![a-z])${pattern}(?![a-z])`).test(hay)
   })
+  // When 'ma non troppo' matched, its fragment 'non troppo' is noise — keep
+  // only terms that aren't contained in another matched term.
+  return matched.filter(
+    (t) => !matched.some((u) => u !== t && fold(u.term).includes(fold(t.term))),
+  )
 }
