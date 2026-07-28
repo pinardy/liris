@@ -42,3 +42,39 @@ export async function getDownloadedIds(): Promise<Set<string>> {
   const keys = await db.files.where('key').startsWith(KEY_PREFIX).primaryKeys()
   return new Set(keys.map((k) => String(k).slice(KEY_PREFIX.length)))
 }
+
+export interface DownloadEntry {
+  track: Track
+  bytes: number
+}
+
+/**
+ * Every download with its track metadata and size, plus bytes held by blobs
+ * whose snapshot has gone missing (still counted so the total is honest).
+ * Blob.size is metadata — the audio bytes stay lazy.
+ */
+export async function getDownloads(): Promise<{
+  entries: DownloadEntry[]
+  orphanBytes: number
+}> {
+  const rows = await db.files.where('key').startsWith(KEY_PREFIX).toArray()
+  const ids = rows.map((r) => String(r.key).slice(KEY_PREFIX.length))
+  const tracks = await db.tracks.bulkGet(ids)
+  const entries: DownloadEntry[] = []
+  let orphanBytes = 0
+  rows.forEach((row, i) => {
+    const track = tracks[i]
+    if (track) entries.push({ track, bytes: row.blob.size })
+    else orphanBytes += row.blob.size
+  })
+  entries.sort((a, b) => a.track.artist.localeCompare(b.track.artist) ||
+    (a.track.album ?? '').localeCompare(b.track.album ?? ''))
+  return { entries, orphanBytes }
+}
+
+/** Delete every downloaded blob. Returns how many were removed. */
+export async function removeAllDownloads(): Promise<number> {
+  const keys = await db.files.where('key').startsWith(KEY_PREFIX).primaryKeys()
+  await db.files.bulkDelete(keys)
+  return keys.length
+}

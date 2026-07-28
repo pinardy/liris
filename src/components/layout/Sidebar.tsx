@@ -38,16 +38,28 @@ export default function Sidebar() {
           </NavLink>
         ))}
 
-        <NavLink
-          to="/contemporary"
-          className={({ isActive }) =>
-            `mt-4 border-t border-zinc-800 px-3 pt-4 text-xs font-medium transition-colors ${
-              isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
-            }`
-          }
-        >
-          Contemporary →
-        </NavLink>
+        <div className="mt-4 flex flex-col gap-3 border-t border-zinc-800 pt-4">
+          <NavLink
+            to="/downloads"
+            className={({ isActive }) =>
+              `px-3 text-xs font-medium transition-colors ${
+                isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+              }`
+            }
+          >
+            Downloads
+          </NavLink>
+          <NavLink
+            to="/contemporary"
+            className={({ isActive }) =>
+              `px-3 text-xs font-medium transition-colors ${
+                isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+              }`
+            }
+          >
+            Contemporary →
+          </NavLink>
+        </div>
       </nav>
     </aside>
   )

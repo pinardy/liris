@@ -1,10 +1,12 @@
 import { useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import PageHeading from '../components/common/PageHeading'
 import { EmptyState } from '../components/common/Status'
 import { PlusIcon, SearchIcon } from '../components/common/icons'
 import TrackActions from '../components/tracks/TrackActions'
 import TrackList from '../components/tracks/TrackList'
+import { formatBytes } from '../lib/format'
 import { usePlayerStore } from '../player/playerStore'
 import { deleteLocalTrack, getLocalTracks } from '../services/db/library'
 import {
@@ -21,12 +23,6 @@ const SORT_LABELS: Record<SortKey, string> = {
   title: 'Title',
   artist: 'Artist',
   album: 'Album',
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`
-  if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(0)} MB`
-  return `${Math.round(bytes / 1e3)} KB`
 }
 
 export default function Library() {
@@ -116,6 +112,12 @@ export default function Library() {
           </button>
         </div>
       </PageHeading>
+
+      <p className="mb-4 text-sm">
+        <Link to="/downloads" className="text-zinc-400 underline-offset-2 hover:text-white hover:underline">
+          Manage offline downloads →
+        </Link>
+      </p>
 
       <input
         ref={fileInput}
