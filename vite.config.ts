@@ -110,6 +110,17 @@ export default defineConfig({
             },
           },
           {
+            // Composer and work summaries (AboutBlurb). Article intros change
+            // rarely; refresh in the background so blurbs work offline.
+            urlPattern: /^https:\/\/en\.wikipedia\.org\/(api|w)\//,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'wikipedia-summaries',
+              expiration: { maxEntries: 150, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             // Composer portraits. Commons redirects to upload.wikimedia.org, so
             // both hosts need routing; these images never change.
             urlPattern: /^https:\/\/(commons|upload)\.wikimedia\.org\//,

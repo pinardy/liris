@@ -1,5 +1,6 @@
 import { useParams } from 'react-router'
 import { Link } from 'react-router'
+import AboutBlurb from '../components/common/AboutBlurb'
 import { PlayIcon } from '../components/common/icons'
 import StartRadioButton from '../components/common/StartRadioButton'
 import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
@@ -9,6 +10,7 @@ import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { formBySlug, workTracks } from '../lib/classical'
 import { composerLifespan } from '../lib/composers'
 import { usePlayerStore } from '../player/playerStore'
+import { fetchSummary } from '../services/wikipedia'
 
 export default function ComposerPage() {
   const { slug } = useParams()
@@ -71,6 +73,13 @@ export default function ComposerPage() {
           </div>
         </div>
       </div>
+
+      {entry.composer && (
+        <AboutBlurb
+          cacheKey={`wiki:composer:${entry.slug}`}
+          load={() => fetchSummary(entry.composer!.name)}
+        />
+      )}
 
       {entry.composer && (
         <div className="mb-6 flex flex-wrap gap-2">

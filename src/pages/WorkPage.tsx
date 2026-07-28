@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
+import AboutBlurb from '../components/common/AboutBlurb'
 import ArtworkImage from '../components/common/ArtworkImage'
 import { PlayIcon } from '../components/common/icons'
 import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
@@ -7,7 +8,9 @@ import TrackList from '../components/tracks/TrackList'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { formBySlug } from '../lib/classical'
 import { formatDuration } from '../lib/format'
+import { composerBySlug } from '../lib/composers'
 import { usePlayerStore } from '../player/playerStore'
+import { searchSummary } from '../services/wikipedia'
 
 export default function WorkPage() {
   const { id } = useParams()
@@ -22,6 +25,11 @@ export default function WorkPage() {
 
   const recording = work.recordings[Math.min(recordingIdx, work.recordings.length - 1)]
   const form = work.formSlug ? formBySlug(work.formSlug) : undefined
+  // Search (not exact lookup): article titles rarely match work titles
+  // verbatim. The surname check discards confidently-wrong top hits.
+  const surname = work.composerSlug
+    ? (composerBySlug(work.composerSlug)?.surname ?? work.composerName)
+    : work.composerName
 
   return (
     <>
@@ -70,6 +78,11 @@ export default function WorkPage() {
           </button>
         </div>
       </div>
+
+      <AboutBlurb
+        cacheKey={`wiki:work:${work.id}`}
+        load={() => searchSummary(`${work.title} ${surname}`, surname)}
+      />
 
       {work.recordings.length > 1 && (
         <section className="mb-6">
