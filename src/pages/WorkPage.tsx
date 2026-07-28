@@ -9,6 +9,7 @@ import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { formBySlug } from '../lib/classical'
 import { formatDuration } from '../lib/format'
 import { composerBySlug } from '../lib/composers'
+import { imslpSearchUrl } from '../lib/imslp'
 import { usePlayerStore } from '../player/playerStore'
 import { searchSummary } from '../services/wikipedia'
 
@@ -68,14 +69,25 @@ export default function WorkPage() {
               <> · {recording.performers.join(', ')}</>
             )}
           </p>
-          <button
-            type="button"
-            onClick={() => playQueue(recording.tracks, 0)}
-            className="mt-4 flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-black transition-colors hover:bg-accent-hover"
-          >
-            <PlayIcon width="16" height="16" />
-            Play
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => playQueue(recording.tracks, 0)}
+              className="flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-black transition-colors hover:bg-accent-hover"
+            >
+              <PlayIcon width="16" height="16" />
+              Play
+            </button>
+            <a
+              href={imslpSearchUrl(`${work.title} ${work.composerName}`)}
+              target="_blank"
+              rel="noreferrer"
+              title="Find the sheet music on IMSLP, the free public-domain score library"
+              className="flex items-center gap-2 rounded-full border border-zinc-600 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:border-white"
+            >
+              Score on IMSLP ↗
+            </a>
+          </div>
         </div>
       </div>
 

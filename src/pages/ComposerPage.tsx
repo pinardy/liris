@@ -9,6 +9,7 @@ import WorkRow from '../components/classical/WorkRow'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { formBySlug, workTracks } from '../lib/classical'
 import { composerLifespan } from '../lib/composers'
+import { imslpSearchUrl } from '../lib/imslp'
 import { usePlayerStore } from '../player/playerStore'
 import { fetchSummary } from '../services/wikipedia'
 
@@ -89,6 +90,15 @@ export default function ComposerPage() {
           >
             More {entry.composer.period} works →
           </Link>
+          <a
+            href={imslpSearchUrl(entry.composer.name)}
+            target="_blank"
+            rel="noreferrer"
+            title="Public-domain sheet music on IMSLP"
+            className="rounded-full bg-zinc-800 px-4 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700"
+          >
+            Scores on IMSLP ↗
+          </a>
         </div>
       )}
 
