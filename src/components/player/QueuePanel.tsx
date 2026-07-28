@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
 import { usePlayerStore } from '../../player/playerStore'
 import { formatDuration } from '../../lib/format'
+import { addTrackToPlaylist, createPlaylist } from '../../services/db/playlists'
 import type { Track } from '../../types/model'
 import ArtworkImage from '../common/ArtworkImage'
 import { CloseIcon } from '../common/icons'
@@ -77,19 +78,55 @@ export default function QueuePanel({ onClose }: { onClose: () => void }) {
   const moveInQueue = usePlayerStore((s) => s.moveInQueue)
   const dragFrom = useRef<number | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+
+  async function saveAsPlaylist() {
+    if (saveState !== 'idle' || queue.length === 0) return
+    setSaveState('saving')
+    try {
+      const name = `Queue · ${new Date().toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+      })}`
+      const playlist = await createPlaylist(name)
+      // Sequential on purpose: keeps playlist order identical to queue order.
+      for (const track of queue) await addTrackToPlaylist(playlist.id, track)
+      setSaveState('saved')
+      setTimeout(() => setSaveState('idle'), 2500)
+    } catch (err) {
+      console.error('Could not save queue', err)
+      setSaveState('idle')
+    }
+  }
 
   return (
     <div className="fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-zinc-800 bg-zinc-950 shadow-2xl">
       <div className="flex items-center justify-between border-b border-zinc-800 p-4">
         <h2 className="font-bold">Queue</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close queue"
-          className="text-zinc-400 hover:text-white"
-        >
-          <CloseIcon />
-        </button>
+        <div className="flex items-center gap-3">
+          {queue.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void saveAsPlaylist()}
+              disabled={saveState !== 'idle'}
+              className="rounded-full border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:opacity-70"
+            >
+              {saveState === 'saved'
+                ? 'Saved ✓'
+                : saveState === 'saving'
+                  ? 'Saving…'
+                  : 'Save as playlist'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close queue"
+            className="text-zinc-400 hover:text-white"
+          >
+            <CloseIcon />
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto p-2 pb-24">
         {queue.length === 0 && (
