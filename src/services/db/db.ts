@@ -43,6 +43,21 @@ export interface CacheRecord {
 }
 
 /**
+ * A saved position inside a movement ("Act 2, where I stopped"). Title,
+ * work and composer are denormalized so the row still renders if the track
+ * snapshot is ever pruned.
+ */
+export interface BookmarkRecord {
+  id: string
+  trackId: string
+  positionSec: number
+  title: string
+  work?: string
+  composer: string
+  createdAt: number
+}
+
+/**
  * Local database.
  * - `tracks` holds metadata for BOTH sources: the local library index, plus
  *   snapshots of Jamendo tracks that were playlisted/favorited so those views
@@ -60,6 +75,7 @@ export const db = new Dexie('music-player') as Dexie & {
   plays: EntityTable<PlayRecord, 'id'>
   cache: EntityTable<CacheRecord, 'key'>
   smartPlaylists: EntityTable<SmartPlaylist, 'id'>
+  bookmarks: EntityTable<BookmarkRecord, 'id'>
 }
 
 db.version(1).stores({
@@ -81,4 +97,8 @@ db.version(3).stores({
 
 db.version(4).stores({
   smartPlaylists: 'id, name, updatedAt',
+})
+
+db.version(5).stores({
+  bookmarks: 'id, createdAt',
 })

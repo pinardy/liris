@@ -20,6 +20,7 @@ import {
 } from '../common/icons'
 import { searchSummary } from '../../services/wikipedia'
 import type { Track } from '../../types/model'
+import BookmarkButton from './BookmarkButton'
 import SeekBar from './SeekBar'
 
 /** The contiguous run of queue tracks belonging to the current work —
@@ -62,6 +63,7 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-zinc-800 to-zinc-950 p-6">
       <div className="flex items-center justify-end gap-5">
+        <BookmarkButton className="text-zinc-300 hover:text-white" />
         {isWork && (
           <button
             type="button"

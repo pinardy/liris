@@ -248,6 +248,14 @@ export function SparklesIcon(props: IconProps) {
   )
 }
 
+export function BookmarkIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 3h12v18l-6-4.5L6 21V3Z" />
+    </Icon>
+  )
+}
+
 export function InfoIcon(props: IconProps) {
   return (
     <Icon {...props}>

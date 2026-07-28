@@ -47,6 +47,8 @@ export interface PlayerState {
 
   playQueue: (tracks: Track[], startIndex?: number) => void
   playTrack: (track: Track) => void
+  /** Play a single track starting at a saved position (bookmarks). */
+  playTrackFrom: (track: Track, positionSec: number) => void
   /**
    * Radio mode: shuffle GROUPS of tracks (whole works — a symphony is never
    * split mid-radio) into one queue and loop it endlessly. Turns repeat to
@@ -137,6 +139,25 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     playTrack: (track) => get().playQueue([track], 0),
+
+    playTrackFrom: (track, positionSec) => {
+      set({
+        radioMode: false,
+        queue: [track],
+        originalQueue: null,
+        currentIndex: 0,
+        positionSec,
+        durationSec: track.durationSec,
+      })
+      // Seek once playback is actually rolling — before that the element may
+      // not have metadata and the position wouldn't stick.
+      void engine.loadAndPlay(track).then(() => {
+        if (positionSec > 1) engine.seek(positionSec)
+      })
+      void import('../services/db/recents').then(({ recordPlay }) =>
+        recordPlay(track).catch(() => {}),
+      )
+    },
 
     startRadio: (groups) => {
       const queue = shuffled(groups.filter((g) => g.length > 0)).flat()

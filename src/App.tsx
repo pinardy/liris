@@ -14,6 +14,8 @@ import Playlists from './pages/Playlists'
 import PlaylistPage from './pages/PlaylistPage'
 import SmartPlaylistPage from './pages/SmartPlaylistPage'
 import Downloads from './pages/Downloads'
+import History from './pages/History'
+import Bookmarks from './pages/Bookmarks'
 import Favorites from './pages/Favorites'
 import Composers from './pages/Composers'
 import ComposerPage from './pages/ComposerPage'
@@ -53,6 +55,8 @@ function App() {
             <Route path="/contemporary" element={<Contemporary />} />
             <Route path="/library" element={<Library />} />
             <Route path="/downloads" element={<Downloads />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/bookmarks" element={<Bookmarks />} />
             <Route path="/playlists" element={<Playlists />} />
             <Route path="/playlists/:id" element={<PlaylistPage />} />
             <Route path="/smart/:id" element={<SmartPlaylistPage />} />

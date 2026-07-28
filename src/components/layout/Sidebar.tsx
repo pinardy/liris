@@ -40,6 +40,26 @@ export default function Sidebar() {
 
         <div className="mt-4 flex flex-col gap-3 border-t border-zinc-800 pt-4">
           <NavLink
+            to="/history"
+            className={({ isActive }) =>
+              `px-3 text-xs font-medium transition-colors ${
+                isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+              }`
+            }
+          >
+            History
+          </NavLink>
+          <NavLink
+            to="/bookmarks"
+            className={({ isActive }) =>
+              `px-3 text-xs font-medium transition-colors ${
+                isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+              }`
+            }
+          >
+            Bookmarks
+          </NavLink>
+          <NavLink
             to="/downloads"
             className={({ isActive }) =>
               `px-3 text-xs font-medium transition-colors ${

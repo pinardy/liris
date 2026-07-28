@@ -15,6 +15,7 @@ import {
   SkipNextIcon,
   SkipPrevIcon,
 } from '../common/icons'
+import BookmarkButton from './BookmarkButton'
 import EqualizerPanel from './EqualizerPanel'
 import NowPlayingSheet from './NowPlayingSheet'
 import QueuePanel from './QueuePanel'
@@ -158,6 +159,9 @@ export default function PlayerBar() {
 
         {/* Right side */}
         <div className="flex items-center justify-end gap-3">
+          <span className="hidden md:block">
+            <BookmarkButton />
+          </span>
           <EqualizerPanel />
           <SleepTimerMenu />
           <button
