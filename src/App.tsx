@@ -1,7 +1,9 @@
+import { useRef } from 'react'
 import { Routes, Route } from 'react-router'
 import Toaster from './components/common/Toaster'
 import Sidebar from './components/layout/Sidebar'
 import MobileTabBar from './components/layout/MobileTabBar'
+import ScrollMemory from './components/layout/ScrollMemory'
 import PlayerBar from './components/player/PlayerBar'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import Home from './pages/Home'
@@ -22,11 +24,13 @@ import Contemporary from './pages/Contemporary'
 
 function App() {
   useKeyboardShortcuts()
+  const mainRef = useRef<HTMLElement>(null)
   return (
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1">
         <Sidebar />
-        <main className="min-w-0 flex-1 overflow-y-auto px-4 py-6 md:px-8">
+        <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto px-4 py-6 md:px-8">
+          <ScrollMemory container={mainRef} />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
