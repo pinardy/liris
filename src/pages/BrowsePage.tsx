@@ -1,5 +1,6 @@
 import { useParams } from 'react-router'
 import { PlayIcon } from '../components/common/icons'
+import AboutBlurb from '../components/common/AboutBlurb'
 import StartRadioButton from '../components/common/StartRadioButton'
 import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
 import WorkRow from '../components/classical/WorkRow'
@@ -8,6 +9,7 @@ import { formBySlug, workTracks, type Work } from '../lib/classical'
 import { periods } from '../lib/composers'
 import { instrumentBySlug, roleLabels } from '../lib/performers'
 import { usePlayerStore } from '../player/playerStore'
+import { searchSummary } from '../services/wikipedia'
 
 type Mode = 'period' | 'form' | 'performer' | 'instrument'
 
@@ -31,6 +33,8 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
   let title = ''
   let subtitle = ''
   let works: Work[] = []
+  /** Set for performers only: their name, to look up a Wikipedia intro. */
+  let blurbQuery: string | undefined
 
   if (mode === 'period') {
     const period = periods.find((p) => p.slug === slug)
@@ -56,6 +60,7 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
     title = performer.name
     subtitle = roleLabels[performer.role]
     works = performer.works
+    blurbQuery = performer.name
   }
 
   const allTracks = works.flatMap(workTracks)
@@ -84,6 +89,20 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
           <StartRadioButton groups={works.map(workTracks)} />
         </div>
       </div>
+
+      {blurbQuery !== undefined &&
+        (() => {
+          // Captured as a const so the narrowing survives into the closure.
+          const name = blurbQuery
+          return (
+            <AboutBlurb
+              cacheKey={`wiki:performer:${slug}`}
+              // mustMention the full name: a summary that never says the name
+              // is the wrong article — an absent blurb beats a wrong one.
+              load={() => searchSummary(name, name)}
+            />
+          )
+        })()}
 
       {works.length > 0 ? (
         <div className="flex flex-col">
