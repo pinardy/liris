@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
+import { onAppEvent } from '../../lib/appEvents'
 import { workIdForTrack } from '../../lib/classical'
 import { usePlayerStore, selectCurrentTrack } from '../../player/playerStore'
 import ArtworkImage from '../common/ArtworkImage'
@@ -36,6 +37,9 @@ export default function PlayerBar() {
   const artworkUrl = useTrackArtwork(track)
   const workId = track ? workIdForTrack(track) : undefined
 
+  // The 'Q' keyboard shortcut lives outside this component.
+  useEffect(() => onAppEvent('toggle-queue', () => setQueueOpen((o) => !o)), [])
+
   if (!track) {
     return (
       <footer className="flex h-20 items-center gap-3 border-t border-zinc-800 bg-zinc-900 px-4">
@@ -54,13 +58,14 @@ export default function PlayerBar() {
       {queueOpen && <QueuePanel onClose={() => setQueueOpen(false)} />}
       {nowPlayingOpen && <NowPlayingSheet onClose={() => setNowPlayingOpen(false)} />}
       <footer className="grid h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 border-t border-zinc-800 bg-zinc-900 px-4 md:grid-cols-[1fr_2fr_1fr]">
-        {/* Now playing — artwork/title open the full-screen view on mobile;
-            the work line links to its page (links can't nest in the button). */}
+        {/* Now playing — artwork/title open the full-screen view (which now
+            carries the program notes, so desktop gets it too); the work line
+            links to its page (links can't nest in the button). */}
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
             onClick={() => setNowPlayingOpen(true)}
-            className="shrink-0 md:pointer-events-none"
+            className="shrink-0"
             aria-label="Open now playing"
           >
             <ArtworkImage src={artworkUrl} className="size-12" />
@@ -69,7 +74,7 @@ export default function PlayerBar() {
             <button
               type="button"
               onClick={() => setNowPlayingOpen(true)}
-              className="block max-w-full truncate text-left text-sm font-medium md:pointer-events-none"
+              className="block max-w-full truncate text-left text-sm font-medium"
             >
               {track.title}
             </button>
