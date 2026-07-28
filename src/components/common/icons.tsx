@@ -219,6 +219,45 @@ export function MusicNoteIcon(props: IconProps) {
   )
 }
 
+export function GripIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 9h16" />
+      <path d="M4 15h16" />
+    </Icon>
+  )
+}
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M4 20h16" />
+    </Icon>
+  )
+}
+
+export function SparklesIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3 9.8 9.2 3 12l6.8 2.8L12 21l2.2-6.2L21 12l-6.8-2.8L12 3Z" />
+      <path d="M19 3v4" />
+      <path d="M17 5h4" />
+    </Icon>
+  )
+}
+
+export function InfoIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5" />
+      <path d="M12 8h.01" />
+    </Icon>
+  )
+}
+
 export function BroadcastIcon(props: IconProps) {
   return (
     <Icon {...props}>
