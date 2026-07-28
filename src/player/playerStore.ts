@@ -27,6 +27,8 @@ export interface PlayerState {
   sleepTimerEndsAt: number | null
   /** Pause when the current track finishes instead of advancing. */
   sleepAtTrackEnd: boolean
+  /** True while the queue was built by startRadio (cleared by other plays). */
+  radioMode: boolean
 
   playQueue: (tracks: Track[], startIndex?: number) => void
   playTrack: (track: Track) => void
@@ -94,9 +96,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     repeat: 'off',
     sleepTimerEndsAt: null,
     sleepAtTrackEnd: false,
+    radioMode: false,
 
     playQueue: (tracks, startIndex = 0) => {
       if (tracks.length === 0) return
+      set({ radioMode: false })
       const { shuffle } = get()
       if (shuffle) {
         const shuffledTracks = shuffleQueue(tracks, startIndex)
@@ -118,6 +122,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         originalQueue: null,
         shuffle: false,
         repeat: 'all',
+        radioMode: true,
       })
       startTrack(0)
     },

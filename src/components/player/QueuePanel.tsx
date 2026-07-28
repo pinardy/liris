@@ -76,6 +76,7 @@ export default function QueuePanel({ onClose }: { onClose: () => void }) {
   const playFromQueue = usePlayerStore((s) => s.playFromQueue)
   const removeFromQueue = usePlayerStore((s) => s.removeFromQueue)
   const moveInQueue = usePlayerStore((s) => s.moveInQueue)
+  const radioMode = usePlayerStore((s) => s.radioMode)
   const dragFrom = useRef<number | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
@@ -102,7 +103,14 @@ export default function QueuePanel({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-zinc-800 bg-zinc-950 shadow-2xl">
       <div className="flex items-center justify-between border-b border-zinc-800 p-4">
-        <h2 className="font-bold">Queue</h2>
+        <div>
+          <h2 className="font-bold">Queue</h2>
+          {radioMode && (
+            <p className="text-[11px] text-accent">
+              Radio — works play complete, looping
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           {queue.length > 0 && (
             <button
