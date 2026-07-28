@@ -28,6 +28,8 @@ jobs:
 
       - run: npm ci
 
+      - run: npm test
+
       - name: Build
         env:
           # Jamendo's client_id is a public usage identifier, not a secret — it
