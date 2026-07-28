@@ -22,6 +22,20 @@ export interface RecentRecord {
 }
 
 /**
+ * One row per play, append-only — the raw material for listening stats.
+ * Composer/work/duration are denormalized at write time so aggregation never
+ * depends on track snapshots that may have been pruned.
+ */
+export interface PlayRecord {
+  id?: number
+  trackId: string
+  composer: string
+  work: string
+  durationSec: number
+  playedAt: number
+}
+
+/**
  * Local database.
  * - `tracks` holds metadata for BOTH sources: the local library index, plus
  *   snapshots of Jamendo tracks that were playlisted/favorited so those views
@@ -36,6 +50,7 @@ export const db = new Dexie('music-player') as Dexie & {
   playlists: EntityTable<Playlist, 'id'>
   favorites: EntityTable<FavoriteRecord, 'trackId'>
   recentlyPlayed: EntityTable<RecentRecord, 'trackId'>
+  plays: EntityTable<PlayRecord, 'id'>
 }
 
 db.version(1).stores({
@@ -45,4 +60,8 @@ db.version(1).stores({
   playlists: 'id, name, updatedAt',
   favorites: 'trackId, addedAt',
   recentlyPlayed: 'trackId, playedAt',
+})
+
+db.version(2).stores({
+  plays: '++id, playedAt',
 })

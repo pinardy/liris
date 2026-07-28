@@ -3,19 +3,10 @@ import ComposerAvatar from '../components/classical/ComposerAvatar'
 import PageHeading from '../components/common/PageHeading'
 import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
-import { periods, type Period } from '../lib/composers'
+import { periodColors, periods } from '../lib/composers'
 
 const PX_PER_YEAR = 3
 const GRID_STEP_YEARS = 50
-
-/** One color per period, used for both the bars and the legend. */
-const PERIOD_COLORS: Record<Period, string> = {
-  Renaissance: 'bg-amber-500',
-  Baroque: 'bg-emerald-500',
-  Classical: 'bg-sky-500',
-  Romantic: 'bg-rose-500',
-  Modern: 'bg-violet-500',
-}
 
 /**
  * Every composer in the catalog as a lifespan bar on a shared time axis —
@@ -70,7 +61,7 @@ export default function Timeline() {
             to={`/period/${p.slug}`}
             className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white"
           >
-            <span className={`size-2.5 rounded-full ${PERIOD_COLORS[p.name]}`} />
+            <span className={`size-2.5 rounded-full ${periodColors[p.name]}`} />
             {p.name}
             <span className="text-zinc-500">{p.range}</span>
           </Link>
@@ -111,7 +102,7 @@ export default function Timeline() {
             >
               <span
                 className={`absolute inset-y-1.5 rounded-full opacity-70 transition-opacity group-hover:opacity-100 ${
-                  PERIOD_COLORS[composer.period]
+                  periodColors[composer.period]
                 }`}
                 style={{ left: x(born), width: Math.max((died - born) * PX_PER_YEAR, 8) }}
               />

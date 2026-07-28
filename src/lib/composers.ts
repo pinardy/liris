@@ -54,6 +54,20 @@ export const periods: { slug: string; name: Period; range: string; blurb: string
 ]
 
 /**
+ * One color per period, shared by the timeline and the stats charts so a
+ * period keeps its identity everywhere. Tailwind 600 steps: validated for
+ * lightness, CVD separation and contrast against the app's dark surface —
+ * always used alongside a text label, never as the only encoding.
+ */
+export const periodColors: Record<Period, string> = {
+  Renaissance: 'bg-amber-600',
+  Baroque: 'bg-emerald-600',
+  Classical: 'bg-sky-600',
+  Romantic: 'bg-rose-600',
+  Modern: 'bg-violet-600',
+}
+
+/**
  * Curated composer reference. Catalog metadata gives us names in wildly
  * different forms ('Johann Sebastian Bach', 'Bach', 'J.S. Bach'), so aliases
  * drive canonicalisation and this table supplies the dates and period that the

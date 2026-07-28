@@ -66,7 +66,12 @@ export default function Home() {
 
       {recentTracks && recentTracks.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-3 text-lg font-bold">Continue listening</h2>
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-lg font-bold">Continue listening</h2>
+            <Link to="/stats" className="text-xs text-zinc-400 hover:text-white">
+              Your stats →
+            </Link>
+          </div>
           <TrackList tracks={recentTracks} onPlay={(i) => playQueue(recentTracks, i)} />
         </section>
       )}

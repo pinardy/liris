@@ -14,6 +14,7 @@ import Composers from './pages/Composers'
 import ComposerPage from './pages/ComposerPage'
 import Timeline from './pages/Timeline'
 import QuizPage from './pages/QuizPage'
+import Stats from './pages/Stats'
 import WorkPage from './pages/WorkPage'
 import BrowsePage from './pages/BrowsePage'
 import CollectionPage from './pages/CollectionPage'
@@ -33,6 +34,7 @@ function App() {
             <Route path="/composer/:slug" element={<ComposerPage />} />
             <Route path="/timeline" element={<Timeline />} />
             <Route path="/quiz" element={<QuizPage />} />
+            <Route path="/stats" element={<Stats />} />
             <Route path="/work/:id" element={<WorkPage />} />
             <Route path="/period/:slug" element={<BrowsePage mode="period" />} />
             <Route path="/form/:slug" element={<BrowsePage mode="form" />} />

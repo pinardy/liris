@@ -3,12 +3,23 @@ import { db } from './db'
 import { ensureTrackSnapshot, getTracksByIds } from './snapshot'
 
 const MAX_RECENTS = 50
+/** Years of listening at heavy use; a full-table scan of this stays instant. */
+const MAX_PLAYS = 20_000
 
 export async function recordPlay(track: Track): Promise<void> {
   // Live radio streams have session-ish URLs and no fixed content — don't record.
   if (track.id.startsWith('radio:')) return
   await ensureTrackSnapshot(track)
-  await db.recentlyPlayed.put({ trackId: track.id, playedAt: Date.now() })
+  const now = Date.now()
+  await db.recentlyPlayed.put({ trackId: track.id, playedAt: now })
+  // Append to the play history (stats). Composer/work denormalized on purpose.
+  await db.plays.add({
+    trackId: track.id,
+    composer: track.artist,
+    work: track.album ?? track.title,
+    durationSec: track.durationSec,
+    playedAt: now,
+  })
   const count = await db.recentlyPlayed.count()
   if (count > MAX_RECENTS) {
     const oldest = await db.recentlyPlayed
@@ -16,6 +27,14 @@ export async function recordPlay(track: Track): Promise<void> {
       .limit(count - MAX_RECENTS)
       .toArray()
     await db.recentlyPlayed.bulkDelete(oldest.map((r) => r.trackId))
+  }
+  const playCount = await db.plays.count()
+  if (playCount > MAX_PLAYS) {
+    const oldestKeys = await db.plays
+      .orderBy('playedAt')
+      .limit(playCount - MAX_PLAYS)
+      .primaryKeys()
+    await db.plays.bulkDelete(oldestKeys)
   }
 }
 
