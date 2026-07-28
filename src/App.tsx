@@ -1,5 +1,6 @@
-import { useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Routes, Route } from 'react-router'
+import ShortcutsHelp from './components/common/ShortcutsHelp'
 import Toaster from './components/common/Toaster'
 import Sidebar from './components/layout/Sidebar'
 import MobileTabBar from './components/layout/MobileTabBar'
@@ -11,6 +12,8 @@ import Search from './pages/Search'
 import Library from './pages/Library'
 import Playlists from './pages/Playlists'
 import PlaylistPage from './pages/PlaylistPage'
+import SmartPlaylistPage from './pages/SmartPlaylistPage'
+import Downloads from './pages/Downloads'
 import Favorites from './pages/Favorites'
 import Composers from './pages/Composers'
 import ComposerPage from './pages/ComposerPage'
@@ -23,7 +26,9 @@ import CollectionPage from './pages/CollectionPage'
 import Contemporary from './pages/Contemporary'
 
 function App() {
-  useKeyboardShortcuts()
+  const [helpOpen, setHelpOpen] = useState(false)
+  const toggleHelp = useCallback(() => setHelpOpen((o) => !o), [])
+  useKeyboardShortcuts(toggleHelp)
   const mainRef = useRef<HTMLElement>(null)
   return (
     <div className="flex h-full flex-col">
@@ -43,11 +48,14 @@ function App() {
             <Route path="/period/:slug" element={<BrowsePage mode="period" />} />
             <Route path="/form/:slug" element={<BrowsePage mode="form" />} />
             <Route path="/performer/:slug" element={<BrowsePage mode="performer" />} />
+            <Route path="/instrument/:slug" element={<BrowsePage mode="instrument" />} />
             <Route path="/collection/:itemId" element={<CollectionPage />} />
             <Route path="/contemporary" element={<Contemporary />} />
             <Route path="/library" element={<Library />} />
+            <Route path="/downloads" element={<Downloads />} />
             <Route path="/playlists" element={<Playlists />} />
             <Route path="/playlists/:id" element={<PlaylistPage />} />
+            <Route path="/smart/:id" element={<SmartPlaylistPage />} />
             <Route path="/favorites" element={<Favorites />} />
           </Routes>
         </main>
@@ -55,6 +63,7 @@ function App() {
       <PlayerBar />
       <MobileTabBar />
       <Toaster />
+      {helpOpen && <ShortcutsHelp onClose={() => setHelpOpen(false)} />}
     </div>
   )
 }
