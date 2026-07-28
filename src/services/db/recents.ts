@@ -1,5 +1,5 @@
 import type { Track } from '../../types/model'
-import { db } from './db'
+import { db, type PlayRecord } from './db'
 import { ensureTrackSnapshot, getTracksByIds } from './snapshot'
 
 const MAX_RECENTS = 50
@@ -45,4 +45,24 @@ export async function getRecentTracks(limit = 10): Promise<Track[]> {
     .limit(limit)
     .toArray()
   return getTracksByIds(recents.map((r) => r.trackId))
+}
+
+export interface HistoryEntry {
+  play: PlayRecord
+  /** Present for every play recorded since recordPlay snapshots tracks;
+   *  absent only if the snapshot was pruned — the row still renders from
+   *  the play's denormalized fields, it just can't be replayed. */
+  track?: Track
+}
+
+/** The full play log, newest first, joined to playable track snapshots. */
+export async function getPlayHistory(limit = 500): Promise<HistoryEntry[]> {
+  const plays = await db.plays.orderBy('playedAt').reverse().limit(limit).toArray()
+  const ids = [...new Set(plays.map((p) => p.trackId))]
+  const tracks = await db.tracks.bulkGet(ids)
+  const byId = new Map<string, Track>()
+  tracks.forEach((t, i) => {
+    if (t) byId.set(ids[i], t)
+  })
+  return plays.map((play) => ({ play, track: byId.get(play.trackId) }))
 }
