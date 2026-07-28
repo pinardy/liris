@@ -251,25 +251,64 @@ function buildIndex(works: Work[], failed: string[]): ClassicalIndex {
 
 let indexPromise: Promise<ClassicalIndex> | null = null
 
+/** Bump when parsing/normalisation changes so stale shapes are discarded. */
+const WORKS_CACHE_KEY = 'classical-works-v1'
+
+async function loadCachedWorks(): Promise<Work[] | null> {
+  try {
+    const { db } = await import('../db/db')
+    const row = await db.cache.get(WORKS_CACHE_KEY)
+    const works = row?.value as Work[] | undefined
+    return Array.isArray(works) && works.length > 0 ? works : null
+  } catch {
+    return null
+  }
+}
+
+async function saveCachedWorks(works: Work[]): Promise<void> {
+  try {
+    const { db } = await import('../db/db')
+    await db.cache.put({ key: WORKS_CACHE_KEY, value: works, savedAt: Date.now() })
+  } catch {
+    // Cache is an optimisation only; quota errors etc. are non-fatal.
+  }
+}
+
+async function fetchWorks(): Promise<{ works: Work[]; failed: string[] }> {
+  const failed: string[] = []
+  const results = await Promise.all(
+    classicalCollections.map((c) =>
+      readCollection(c).catch((err) => {
+        console.error(`Failed to load ${c.itemId}`, err)
+        failed.push(c.name)
+        return [] as ParsedRow[]
+      }),
+    ),
+  )
+  return { works: toWorks(results.flat()), failed }
+}
+
 /**
- * Load and index the whole classical catalog. Memoised for the session; the
- * service worker also caches the underlying archive.org metadata, so repeat
- * visits are effectively instant.
+ * Load and index the whole classical catalog. Memoised for the session, and
+ * persisted to IndexedDB: later sessions boot instantly from the stored works
+ * while a background refresh updates the store for next time. (The catalog is
+ * a fixed set of curated collections, so a session-stale copy is fine.)
  */
 export function getClassicalIndex(): Promise<ClassicalIndex> {
   if (!indexPromise) {
     const promise = (async () => {
-      const failed: string[] = []
-      const results = await Promise.all(
-        classicalCollections.map((c) =>
-          readCollection(c).catch((err) => {
-            console.error(`Failed to load ${c.itemId}`, err)
-            failed.push(c.name)
-            return [] as ParsedRow[]
-          }),
-        ),
-      )
-      const index = buildIndex(toWorks(results.flat()), failed)
+      const cached = await loadCachedWorks()
+      if (cached) {
+        void fetchWorks()
+          .then(({ works }) => {
+            if (works.length > 0) return saveCachedWorks(works)
+          })
+          .catch(() => {})
+        return buildIndex(cached, [])
+      }
+      const { works, failed } = await fetchWorks()
+      if (works.length > 0) void saveCachedWorks(works)
+      const index = buildIndex(works, failed)
       // Every collection failing means we're offline with nothing cached —
       // don't memoise that, so a later visit can retry.
       if (index.works.length === 0) indexPromise = null

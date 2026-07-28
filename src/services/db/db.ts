@@ -35,6 +35,13 @@ export interface PlayRecord {
   playedAt: number
 }
 
+/** Generic JSON cache (e.g. the parsed catalog, for instant cold starts). */
+export interface CacheRecord {
+  key: string
+  value: unknown
+  savedAt: number
+}
+
 /**
  * Local database.
  * - `tracks` holds metadata for BOTH sources: the local library index, plus
@@ -51,6 +58,7 @@ export const db = new Dexie('music-player') as Dexie & {
   favorites: EntityTable<FavoriteRecord, 'trackId'>
   recentlyPlayed: EntityTable<RecentRecord, 'trackId'>
   plays: EntityTable<PlayRecord, 'id'>
+  cache: EntityTable<CacheRecord, 'key'>
 }
 
 db.version(1).stores({
@@ -64,4 +72,8 @@ db.version(1).stores({
 
 db.version(2).stores({
   plays: '++id, playedAt',
+})
+
+db.version(3).stores({
+  cache: 'key',
 })
