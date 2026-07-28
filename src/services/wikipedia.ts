@@ -13,6 +13,8 @@ export interface WikiSummary {
   extract: string
   /** Canonical article URL for attribution. */
   url?: string
+  /** Lead image (~320px wide) — portrait fallback for composers. */
+  thumbnail?: string
 }
 
 interface SummaryResponse {
@@ -20,6 +22,7 @@ interface SummaryResponse {
   title?: string
   extract?: string
   content_urls?: { desktop?: { page?: string } }
+  thumbnail?: { source?: string }
 }
 
 /** Summary of the article with (almost) exactly this title; follows redirects. */
@@ -33,6 +36,7 @@ export async function fetchSummary(title: string): Promise<WikiSummary | null> {
       title: data.title ?? title,
       extract: data.extract,
       url: data.content_urls?.desktop?.page,
+      thumbnail: data.thumbnail?.source,
     }
   } catch {
     return null

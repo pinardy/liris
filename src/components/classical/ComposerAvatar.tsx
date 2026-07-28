@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { composerImageUrl } from '../../lib/composers'
+import { useAsync } from '../../hooks/useAsync'
+import { composerBySlug, composerImageUrl } from '../../lib/composers'
+import { fetchSummary } from '../../services/wikipedia'
 
 interface Props {
   slug: string
@@ -14,6 +16,8 @@ interface Props {
 /**
  * Round composer portrait that fades in over an initials placeholder, falling
  * back to the initials permanently if there's no image or it fails to load.
+ * Curated composers without a bundled portrait borrow their Wikipedia
+ * article's lead image (same cache key as the page blurb, so it's one fetch).
  * Portraits are cropped from the top, since faces sit high in most paintings.
  */
 export default function ComposerAvatar({
@@ -22,7 +26,16 @@ export default function ComposerAvatar({
   className = 'size-11',
   width = 200,
 }: Props) {
-  const src = composerImageUrl(slug, width)
+  const curated = composerImageUrl(slug, width)
+  const composer = curated ? undefined : composerBySlug(slug)
+  const wiki = useAsync(
+    () => (composer ? fetchSummary(composer.name) : Promise.resolve(null)),
+    [slug],
+    composer !== undefined,
+    composer ? `wiki:composer:${slug}` : undefined,
+  )
+  const src = curated ?? wiki.data?.thumbnail
+
   const imgRef = useRef<HTMLImageElement>(null)
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
