@@ -31,11 +31,12 @@ export interface PlayerState {
   playQueue: (tracks: Track[], startIndex?: number) => void
   playTrack: (track: Track) => void
   /**
-   * Radio mode: shuffle the pool into the queue and loop it endlessly.
-   * Turns repeat to 'all' (that's what makes it endless) and leaves the
-   * shuffle toggle off — the queue itself is already shuffled.
+   * Radio mode: shuffle GROUPS of tracks (whole works — a symphony is never
+   * split mid-radio) into one queue and loop it endlessly. Turns repeat to
+   * 'all' (that's what makes it endless) and leaves the shuffle toggle off —
+   * toggling shuffle on would tear the works apart into single movements.
    */
-  startRadio: (tracks: Track[]) => void
+  startRadio: (groups: Track[][]) => void
   togglePlay: () => void
   next: (auto?: boolean) => void
   prev: () => void
@@ -109,10 +110,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
     playTrack: (track) => get().playQueue([track], 0),
 
-    startRadio: (tracks) => {
-      if (tracks.length === 0) return
+    startRadio: (groups) => {
+      const queue = shuffled(groups.filter((g) => g.length > 0)).flat()
+      if (queue.length === 0) return
       set({
-        queue: shuffled(tracks),
+        queue,
         originalQueue: null,
         shuffle: false,
         repeat: 'all',

@@ -84,7 +84,7 @@ export default function ComposerPage() {
               <PlayIcon width="16" height="16" />
               Play all
             </button>
-            <StartRadioButton tracks={allTracks} />
+            <StartRadioButton groups={entry.works.map(workTracks)} />
           </div>
         </div>
       </div>

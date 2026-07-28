@@ -67,7 +67,7 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
             <PlayIcon width="16" height="16" />
             Play all
           </button>
-          <StartRadioButton tracks={allTracks} />
+          <StartRadioButton groups={works.map(workTracks)} />
         </div>
       </div>
 
