@@ -13,6 +13,7 @@ import {
   getPlaylistWithTracks,
   removeTrackFromPlaylist,
   renamePlaylist,
+  reorderPlaylistTracks,
 } from '../services/db/playlists'
 
 export default function PlaylistPage() {
@@ -116,6 +117,7 @@ export default function PlaylistPage() {
         <TrackList
           tracks={tracks}
           onPlay={(i) => playQueue(tracks, i)}
+          onReorder={(from, to) => void reorderPlaylistTracks(playlist.id, from, to)}
           renderActions={(track) => (
             <TrackActions
               track={track}

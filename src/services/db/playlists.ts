@@ -40,6 +40,22 @@ export async function addTrackToPlaylist(playlistId: string, track: Track): Prom
   return true
 }
 
+/** Move the track at `from` to sit at `to`, mirroring queue reordering. */
+export async function reorderPlaylistTracks(
+  playlistId: string,
+  from: number,
+  to: number,
+): Promise<void> {
+  const playlist = await db.playlists.get(playlistId)
+  if (!playlist || from === to) return
+  if (from < 0 || to < 0 || from >= playlist.trackIds.length || to >= playlist.trackIds.length)
+    return
+  const trackIds = [...playlist.trackIds]
+  const [moved] = trackIds.splice(from, 1)
+  trackIds.splice(to, 0, moved)
+  await db.playlists.update(playlistId, { trackIds, updatedAt: Date.now() })
+}
+
 export async function removeTrackFromPlaylist(
   playlistId: string,
   trackId: string,
