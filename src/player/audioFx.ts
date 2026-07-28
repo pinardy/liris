@@ -1,7 +1,9 @@
 /**
- * Web Audio equalizer + analyser for the main playback element.
+ * Web Audio equalizer + analyser for the main playback elements. Both gapless
+ * elements route through ONE shared filter chain, so a mid-work element swap
+ * keeps the same EQ curve.
  * The graph is created lazily (inside a user gesture) and, once created, is
- * permanent for the element — "off" therefore means flat gains, and the
+ * permanent for an element — "off" therefore means flat gains, and the
  * enabled flag controls whether future sessions attach the graph at all.
  *
  * Requires CORS audio (crossOrigin='anonymous'); both Jamendo storage and
@@ -38,24 +40,32 @@ export function loadGains(): number[] {
   return EQ_BANDS.map(() => 0)
 }
 
-export function ensureGraph(el: HTMLAudioElement): void {
-  if (ctx) return
-  ctx = new AudioContext()
-  const source = ctx.createMediaElementSource(el)
-  const gains = loadGains()
-  filters = EQ_BANDS.map((freq, i) => {
-    const f = ctx!.createBiquadFilter()
-    f.type = i === 0 ? 'lowshelf' : i === EQ_BANDS.length - 1 ? 'highshelf' : 'peaking'
-    f.frequency.value = freq
-    if (f.type === 'peaking') f.Q.value = 1
-    f.gain.value = gains[i]
-    return f
-  })
-  analyser = ctx.createAnalyser()
-  analyser.fftSize = 256
-  analyser.smoothingTimeConstant = 0.8
-  const chain: AudioNode[] = [source, ...filters, analyser, ctx.destination]
-  for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1])
+/** Elements already feeding the graph (a source node is one-shot per element). */
+const attachedEls = new WeakSet<HTMLAudioElement>()
+
+export function ensureGraph(...els: HTMLAudioElement[]): void {
+  if (!ctx) {
+    ctx = new AudioContext()
+    const gains = loadGains()
+    filters = EQ_BANDS.map((freq, i) => {
+      const f = ctx!.createBiquadFilter()
+      f.type = i === 0 ? 'lowshelf' : i === EQ_BANDS.length - 1 ? 'highshelf' : 'peaking'
+      f.frequency.value = freq
+      if (f.type === 'peaking') f.Q.value = 1
+      f.gain.value = gains[i]
+      return f
+    })
+    analyser = ctx.createAnalyser()
+    analyser.fftSize = 256
+    analyser.smoothingTimeConstant = 0.8
+    const chain: AudioNode[] = [...filters, analyser, ctx.destination]
+    for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1])
+  }
+  for (const el of els) {
+    if (attachedEls.has(el)) continue
+    attachedEls.add(el)
+    ctx.createMediaElementSource(el).connect(filters[0])
+  }
 }
 
 export function resumeContext(): void {
@@ -83,14 +93,16 @@ export function resetGains(): void {
   EQ_BANDS.forEach((_, i) => setBandGain(i, 0))
 }
 
-/** Turn the equalizer on: mark enabled, switch the element to CORS loading,
- *  build the graph and reload the current track so it picks up the new mode. */
+/** Turn the equalizer on: mark enabled, switch the elements to CORS loading,
+ *  build the graph and reload the current track so it picks up the new mode.
+ *  (A CORS-tainted source would output silence through the graph, so both
+ *  gapless elements must switch modes together.) */
 export async function enableFx(): Promise<void> {
   localStorage.setItem(ENABLED_KEY, '1')
   const engine = await import('./audioEngine')
-  const el = engine.getMainElement()
-  el.crossOrigin = 'anonymous'
-  ensureGraph(el)
+  const els = engine.getMainElements()
+  for (const el of els) el.crossOrigin = 'anonymous'
+  ensureGraph(...els)
   resumeContext()
   await engine.reloadCurrentTrack()
 }

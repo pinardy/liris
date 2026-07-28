@@ -8,9 +8,12 @@ import { resolvePlayableUrl } from './resolveSource'
  * Singleton playback engine, living outside React. Commands come in from
  * playerStore actions; element events sync state back via setState.
  *
- * Two elements:
- * - `audio` plays tracks and (when the equalizer is enabled) is routed through
- *   the Web Audio graph, which requires crossOrigin CORS loads.
+ * Three elements:
+ * - `audio` / `audioAlt` alternate playing tracks. While one plays, the other
+ *   is the *standby*: the upcoming track is resolved and buffered into it, so
+ *   auto-advance swaps elements and plays instantly (near-gapless — vital for
+ *   attacca movement transitions). When the equalizer is enabled, both are
+ *   routed through the Web Audio graph, which requires crossOrigin CORS loads.
  * - `radioAudio` plays live radio streams. Radio redirects through hops
  *   without CORS headers, so it must stay OUT of the graph and load without
  *   crossOrigin — hence its own element. Radio therefore bypasses the EQ.
@@ -30,20 +33,24 @@ function createElement(): HTMLAudioElement {
 }
 
 const audio = createElement()
+const audioAlt = createElement()
 if (localStorage.getItem(FX_ENABLED_KEY) === '1') {
   audio.crossOrigin = 'anonymous'
+  audioAlt.crossOrigin = 'anonymous'
 }
 let radioAudio: HTMLAudioElement | null = null
 let active = audio
+/** Whichever of the two main elements owns the current (non-radio) track. */
+let mainActive = audio
 
 function getRadioElement(): HTMLAudioElement {
   if (!radioAudio) radioAudio = createElement()
   return radioAudio
 }
 
-/** The element the equalizer graph attaches to. */
-export function getMainElement(): HTMLAudioElement {
-  return audio
+/** The elements the equalizer graph attaches to. */
+export function getMainElements(): HTMLAudioElement[] {
+  return [audio, audioAlt]
 }
 
 const RETRY_DELAY_MS = 1000
@@ -67,6 +74,8 @@ let currentLoad: {
   /** A failure for this load was already processed (dedupes the element
    *  'error' event firing alongside a play() promise rejection). */
   handled: boolean
+  /** Standby element that already buffered this track (the gapless path). */
+  preloadedEl?: HTMLAudioElement
 } | null = null
 
 function skipAfterError(track: Track) {
@@ -106,21 +115,25 @@ function handleFailure(token: number) {
 }
 
 async function attemptPlay(load: NonNullable<typeof currentLoad>) {
-  const el = isRadioTrack(load.track) ? getRadioElement() : audio
+  const radio = isRadioTrack(load.track)
+  const el = radio ? getRadioElement() : (load.preloadedEl ?? mainActive)
   if (el !== active) {
     active.pause()
     active.removeAttribute('src')
     active.load()
     active = el
   }
+  if (!radio) mainActive = el
   // Equalizer graph must exist before play; created here so the AudioContext
   // is born inside a user-gesture call stack.
-  if (el === audio && localStorage.getItem(FX_ENABLED_KEY) === '1') {
+  if (!radio && localStorage.getItem(FX_ENABLED_KEY) === '1') {
     const fx = await import('./audioFx')
-    fx.ensureGraph(audio)
+    fx.ensureGraph(audio, audioAlt)
     fx.resumeContext()
   }
-  el.src = load.url
+  // A preloaded standby already buffered this URL — assigning src again would
+  // throw that buffer away. Retries reload deliberately.
+  if (!load.preloadedEl || load.retried) el.src = load.url
   applyVolume()
   try {
     await el.play()
@@ -152,6 +165,24 @@ function releaseObjectUrl() {
 
 export async function loadAndPlay(track: Track): Promise<void> {
   const token = ++loadToken
+
+  // Gapless path: the standby element already buffered this exact track, so
+  // we skip resolution and start it directly with whatever it has buffered.
+  if (standby && standby.track.id === track.id && !isRadioTrack(track)) {
+    const { url, isObjectUrl } = standby
+    const el = standbyElement()
+    standby = null
+    preloadToken++
+    releaseObjectUrl()
+    if (isObjectUrl) currentObjectUrl = url
+    currentLoad = { token, track, url, retried: false, handled: false, preloadedEl: el }
+    await attemptPlay(currentLoad)
+    return
+  }
+
+  // Any other load makes the standby's content unpredictable — drop it.
+  invalidateStandby()
+
   let url: string
   let isObjectUrl = false
   try {
@@ -184,13 +215,16 @@ export async function reloadCurrentTrack(): Promise<void> {
   const s = usePlayerStore.getState()
   const track = s.queue[s.currentIndex]
   if (!track) return
+  // The standby may hold this very track (repeat one) buffered in the old
+  // CORS mode; a gapless swap onto it would play silence through the graph.
+  invalidateStandby()
   const pos = active.currentTime
   await loadAndPlay(track)
   if (Number.isFinite(pos) && pos > 1 && !isRadioTrack(track)) seek(pos)
 }
 
 export function play(): void {
-  if (localStorage.getItem(FX_ENABLED_KEY) === '1' && active === audio) {
+  if (localStorage.getItem(FX_ENABLED_KEY) === '1' && active !== radioAudio) {
     void import('./audioFx').then((fx) => fx.resumeContext())
   }
   active.play().catch(() => usePlayerStore.setState({ isPlaying: false }))
@@ -211,11 +245,10 @@ export function seek(sec: number): void {
 }
 
 export function setVolume(volume: number, muted: boolean): void {
-  audio.volume = volume
-  audio.muted = muted
-  if (radioAudio) {
-    radioAudio.volume = volume
-    radioAudio.muted = muted
+  for (const el of [audio, audioAlt, radioAudio]) {
+    if (!el) continue
+    el.volume = volume
+    el.muted = muted
   }
 }
 
@@ -224,32 +257,58 @@ function applyVolume() {
   setVolume(volume, muted)
 }
 
-// ---- next-track prefetch ----
+// ---- gapless: standby preload of the upcoming track ----
 
-// A detached element (not fetch()) so no CORS is needed and the browser
-// manages Range requests itself. Warms up DNS/TLS and buffers the opening of
-// the next track so auto-advance doesn't stall on slow storage nodes.
-const prefetcher = new Audio()
-prefetcher.preload = 'auto'
-prefetcher.muted = true
-let prefetchedUrl = ''
+/** The main element not currently playing; the next track buffers here. */
+function standbyElement(): HTMLAudioElement {
+  return mainActive === audio ? audioAlt : audio
+}
 
-function maybePrefetchNext() {
+let standby: { track: Track; url: string; isObjectUrl: boolean } | null = null
+let preloadToken = 0
+
+function invalidateStandby() {
+  preloadToken++
+  if (standby) {
+    if (standby.isObjectUrl) URL.revokeObjectURL(standby.url)
+    standby = null
+  }
+  const el = standbyElement()
+  if (el !== active && el.src) {
+    el.removeAttribute('src')
+    el.load()
+  }
+}
+
+/**
+ * Resolve and buffer the upcoming track on the standby element so
+ * auto-advance can swap elements and play instantly instead of resolving and
+ * fetching at the boundary. Best-effort: any failure just means the advance
+ * falls back to the ordinary load-on-demand path.
+ */
+async function preloadNext() {
   const s = usePlayerStore.getState()
   const idx = nextIndex(s.queue.length, s.currentIndex, s.repeat, true)
-  if (idx === null || idx === s.currentIndex) return
+  if (idx === null) return
   const next = s.queue[idx]
-  // Only remote sources benefit; local tracks load instantly from IndexedDB.
-  const url =
-    next?.source === 'jamendo'
-      ? next.jamendo?.audioUrl
-      : next?.source === 'archive'
-        ? next.archive?.audioUrl
-        : undefined
-  if (!url || url === prefetchedUrl) return
-  prefetchedUrl = url
-  prefetcher.src = url
-  prefetcher.load()
+  if (!next || isRadioTrack(next)) return
+  if (standby?.track.id === next.id) return
+  const token = ++preloadToken
+  try {
+    const resolved = await resolvePlayableUrl(next)
+    if (token !== preloadToken) {
+      if (resolved.isObjectUrl) URL.revokeObjectURL(resolved.url)
+      return
+    }
+    if (standby?.isObjectUrl) URL.revokeObjectURL(standby.url)
+    standby = { track: next, ...resolved }
+    const el = standbyElement()
+    el.preload = 'auto'
+    el.src = resolved.url
+    el.load()
+  } catch {
+    // Leave the standby empty; the boundary will resolve normally.
+  }
 }
 
 // ---- returning to the foreground ----
@@ -261,7 +320,7 @@ if (typeof document !== 'undefined') {
     usePlayerStore.getState().checkSleepTimer()
     // Mobile browsers suspend AudioContexts when backgrounded; bring ours back
     // so the equalizer keeps working after a return to the app.
-    if (localStorage.getItem(FX_ENABLED_KEY) === '1' && active === audio) {
+    if (localStorage.getItem(FX_ENABLED_KEY) === '1' && active !== radioAudio) {
       void import('./audioFx').then((fx) => fx.resumeContext())
     }
   })
@@ -305,7 +364,7 @@ function wire(el: HTMLAudioElement) {
       Number.isFinite(el.duration) &&
       el.duration - el.currentTime < PREFETCH_THRESHOLD_SEC
     ) {
-      maybePrefetchNext()
+      void preloadNext()
     }
   })
 
