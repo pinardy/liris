@@ -7,6 +7,7 @@ import {
   type Work,
 } from '../../lib/classical'
 import { findComposer, type Composer, type Period } from '../../lib/composers'
+import { classifyPerformer, detectInstruments, type PerformerRole } from '../../lib/performers'
 import type { Track } from '../../types/model'
 import {
   archiveThumbnail,
@@ -29,6 +30,8 @@ export interface ComposerEntry {
 export interface PerformerEntry {
   name: string
   slug: string
+  /** Heuristic: orchestras/ensembles/choirs recognised by name, else artist. */
+  role: PerformerRole
   works: Work[]
 }
 
@@ -38,6 +41,8 @@ export interface ClassicalIndex {
   performers: PerformerEntry[]
   byPeriod: Map<Period, Work[]>
   byForm: Map<string, Work[]>
+  /** Works whose titles name an instrument ('Piano Concerto…'), by slug. */
+  byInstrument: Map<string, Work[]>
   workById: Map<string, Work>
   trackCount: number
   /** Collections that failed to load, so the UI can be honest about gaps. */
@@ -177,6 +182,7 @@ function buildIndex(works: Work[], failed: string[]): ClassicalIndex {
   const performerMap = new Map<string, PerformerEntry>()
   const byPeriod = new Map<Period, Work[]>()
   const byForm = new Map<string, Work[]>()
+  const byInstrument = new Map<string, Work[]>()
   const workById = new Map<string, Work>()
   let trackCount = 0
 
@@ -217,12 +223,18 @@ function buildIndex(works: Work[], failed: string[]): ClassicalIndex {
       list.push(work)
       byForm.set(work.formSlug, list)
     }
+    // Derived here (not in toWorks) so cached work snapshots stay valid.
+    for (const instrument of detectInstruments(work.title)) {
+      const list = byInstrument.get(instrument) ?? []
+      list.push(work)
+      byInstrument.set(instrument, list)
+    }
     for (const recording of work.recordings) {
       for (const performer of recording.performers) {
         const pslug = slugify(performer)
         let p = performerMap.get(pslug)
         if (!p) {
-          p = { name: performer, slug: pslug, works: [] }
+          p = { name: performer, slug: pslug, role: classifyPerformer(performer), works: [] }
           performerMap.set(pslug, p)
         }
         if (!p.works.includes(work)) p.works.push(work)
@@ -243,6 +255,7 @@ function buildIndex(works: Work[], failed: string[]): ClassicalIndex {
     ),
     byPeriod,
     byForm,
+    byInstrument,
     workById,
     trackCount,
     failedCollections: failed,

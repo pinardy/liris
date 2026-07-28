@@ -10,6 +10,7 @@ import { useAsync } from '../hooks/useAsync'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { forms } from '../lib/classical'
 import { composerLifespan, periods } from '../lib/composers'
+import { instruments, roleLabels } from '../lib/performers'
 import { usePlayerStore } from '../player/playerStore'
 import { getRecentTracks } from '../services/db/recents'
 import {
@@ -38,6 +39,9 @@ export default function Home() {
     : []
   const availableForms = index
     ? forms.filter((f) => (index.byForm.get(f.slug)?.length ?? 0) > 0)
+    : []
+  const availableInstruments = index
+    ? instruments.filter((i) => (index.byInstrument.get(i.slug)?.length ?? 0) > 0)
     : []
 
   return (
@@ -148,6 +152,26 @@ export default function Home() {
             </div>
           </section>
 
+          {availableInstruments.length > 0 && (
+            <section className="mb-10">
+              <h2 className="mb-3 text-lg font-bold">Instruments</h2>
+              <div className="flex flex-wrap gap-2">
+                {availableInstruments.map((i) => (
+                  <Link
+                    key={i.slug}
+                    to={`/instrument/${i.slug}`}
+                    className="rounded-full bg-zinc-800 px-4 py-1.5 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
+                  >
+                    {i.label}
+                    <span className="ml-1.5 text-xs text-zinc-500">
+                      {index.byInstrument.get(i.slug)?.length}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section className="mb-10">
             <Link
               to="/quiz"
@@ -184,10 +208,14 @@ export default function Home() {
                   <Link
                     key={p.slug}
                     to={`/performer/${p.slug}`}
+                    title={roleLabels[p.role]}
                     className="rounded-full bg-zinc-800 px-4 py-1.5 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
                   >
                     {p.name}
-                    <span className="ml-1.5 text-xs text-zinc-500">{p.works.length}</span>
+                    <span className="ml-1.5 text-xs text-zinc-500">
+                      {p.role !== 'artist' && `${roleLabels[p.role]} · `}
+                      {p.works.length}
+                    </span>
                   </Link>
                 ))}
               </div>

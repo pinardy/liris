@@ -12,6 +12,7 @@ import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { formBySlug } from '../lib/classical'
 import { formatDuration } from '../lib/format'
 import { composerBySlug } from '../lib/composers'
+import { detectInstruments, instrumentBySlug } from '../lib/performers'
 import { imslpSearchUrl } from '../lib/imslp'
 import { usePlayerStore } from '../player/playerStore'
 import { searchSummary } from '../services/wikipedia'
@@ -29,6 +30,9 @@ export default function WorkPage() {
 
   const recording = work.recordings[Math.min(recordingIdx, work.recordings.length - 1)]
   const form = work.formSlug ? formBySlug(work.formSlug) : undefined
+  const workInstruments = detectInstruments(work.title)
+    .map(instrumentBySlug)
+    .filter((i) => i !== undefined)
   // Search (not exact lookup): article titles rarely match work titles
   // verbatim. The surname check discards confidently-wrong top hits.
   const surname = work.composerSlug
@@ -71,6 +75,14 @@ export default function WorkPage() {
             {recording.performers.length > 0 && (
               <> · {recording.performers.join(', ')}</>
             )}
+            {workInstruments.map((i) => (
+              <span key={i.slug}>
+                {' · '}
+                <Link to={`/instrument/${i.slug}`} className="hover:text-white hover:underline">
+                  {i.label}
+                </Link>
+              </span>
+            ))}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button

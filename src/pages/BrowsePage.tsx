@@ -6,11 +6,19 @@ import WorkRow from '../components/classical/WorkRow'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { formBySlug, workTracks, type Work } from '../lib/classical'
 import { periods } from '../lib/composers'
+import { instrumentBySlug, roleLabels } from '../lib/performers'
 import { usePlayerStore } from '../player/playerStore'
 
-type Mode = 'period' | 'form' | 'performer'
+type Mode = 'period' | 'form' | 'performer' | 'instrument'
 
-/** Shared list page for the three secondary browse dimensions. */
+const MODE_LABELS: Record<Mode, string> = {
+  period: 'Period',
+  form: 'Form',
+  performer: 'Performer',
+  instrument: 'Instrument',
+}
+
+/** Shared list page for the secondary browse dimensions. */
 export default function BrowsePage({ mode }: { mode: Mode }) {
   const { slug } = useParams()
   const { data: index, error, loading } = useClassicalIndex()
@@ -36,11 +44,17 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
     title = form.label
     subtitle = form.blurb
     works = index.byForm.get(form.slug) ?? []
+  } else if (mode === 'instrument') {
+    const instrument = instrumentBySlug(slug)
+    if (!instrument) return <EmptyState title="Instrument not found" />
+    title = instrument.label
+    subtitle = instrument.blurb
+    works = index.byInstrument.get(instrument.slug) ?? []
   } else {
     const performer = index.performers.find((p) => p.slug === slug)
     if (!performer) return <EmptyState title="Performer not found" />
     title = performer.name
-    subtitle = 'Performer'
+    subtitle = roleLabels[performer.role]
     works = performer.works
   }
 
@@ -50,7 +64,7 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
     <>
       <div className="mb-6">
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-          {mode === 'period' ? 'Period' : mode === 'form' ? 'Form' : 'Performer'}
+          {MODE_LABELS[mode]}
         </p>
         <h1 className="mt-1 text-3xl font-extrabold md:text-4xl">{title}</h1>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">{subtitle}</p>
