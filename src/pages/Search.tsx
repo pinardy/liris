@@ -8,14 +8,15 @@ import WorkRow from '../components/classical/WorkRow'
 import TrackList from '../components/tracks/TrackList'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
-import { composerLifespan } from '../lib/composers'
+import { composerLifespan, fold } from '../lib/composers'
 import { usePlayerStore } from '../player/playerStore'
 import { db } from '../services/db/db'
 
 export default function Search() {
   const [params, setParams] = useSearchParams()
   const query = params.get('q') ?? ''
-  const debounced = useDebouncedValue(query.trim().toLowerCase(), 250)
+  // Folded so 'Dvorak' finds Dvořák, 'Faure' finds Fauré — and vice versa.
+  const debounced = useDebouncedValue(fold(query.trim()), 250)
   const enabled = debounced.length > 0
 
   const { data: index, loading } = useClassicalIndex()
@@ -28,23 +29,23 @@ export default function Search() {
     return all
       .filter(
         (t) =>
-          t.title.toLowerCase().includes(debounced) ||
-          t.artist.toLowerCase().includes(debounced) ||
-          (t.album ?? '').toLowerCase().includes(debounced),
+          fold(t.title).includes(debounced) ||
+          fold(t.artist).includes(debounced) ||
+          fold(t.album ?? '').includes(debounced),
       )
       .slice(0, 12)
   }, [debounced, enabled])
 
   const composers = enabled
-    ? (index?.composers ?? []).filter((c) => c.name.toLowerCase().includes(debounced))
+    ? (index?.composers ?? []).filter((c) => fold(c.name).includes(debounced))
     : []
   const works = enabled
     ? (index?.works ?? [])
         .filter(
           (w) =>
-            w.title.toLowerCase().includes(debounced) ||
-            w.composerName.toLowerCase().includes(debounced) ||
-            (w.catalogue ?? '').toLowerCase().includes(debounced),
+            fold(w.title).includes(debounced) ||
+            fold(w.composerName).includes(debounced) ||
+            fold(w.catalogue ?? '').includes(debounced),
         )
         .slice(0, 40)
     : []

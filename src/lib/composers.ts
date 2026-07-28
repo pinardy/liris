@@ -274,8 +274,9 @@ export function repairMojibake(raw: string): string {
   }
 }
 
-/** Lowercase and strip diacritics so 'Antonín Dvořák' matches the alias 'dvorak'. */
-function fold(raw: string): string {
+/** Lowercase and strip diacritics so 'Antonín Dvořák' matches the alias
+ *  'dvorak'. Exported for search, which needs the same tolerance. */
+export function fold(raw: string): string {
   return repairMojibake(raw)
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
