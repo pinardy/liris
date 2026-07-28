@@ -106,6 +106,17 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
+          {
+            // Composer portraits. Commons redirects to upload.wikimedia.org, so
+            // both hosts need routing; these images never change.
+            urlPattern: /^https:\/\/(commons|upload)\.wikimedia\.org\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'composer-portraits',
+              expiration: { maxEntries: 80, maxAgeSeconds: 90 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
       devOptions: { enabled: false },

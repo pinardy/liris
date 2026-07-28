@@ -2,6 +2,7 @@ import { useParams } from 'react-router'
 import { Link } from 'react-router'
 import { PlayIcon } from '../components/common/icons'
 import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
+import ComposerAvatar from '../components/classical/ComposerAvatar'
 import WorkRow from '../components/classical/WorkRow'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { formBySlug, workTracks } from '../lib/classical'
@@ -32,9 +33,12 @@ export default function ComposerPage() {
   return (
     <>
       <div className="mb-8 flex flex-col items-start gap-5 sm:flex-row sm:items-end">
-        <div className="flex size-40 items-center justify-center rounded-full bg-gradient-to-br from-indigo-800 to-zinc-800 text-4xl font-bold text-indigo-200 sm:size-48">
-          {(entry.composer?.surname ?? entry.name).slice(0, 2)}
-        </div>
+        <ComposerAvatar
+          slug={entry.slug}
+          name={entry.composer?.surname ?? entry.name}
+          className="size-40 sm:size-48"
+          width={500}
+        />
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
             Composer

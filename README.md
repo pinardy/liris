@@ -21,6 +21,8 @@ That indexes to roughly **230 works by 34 composers**. Bach's Goldberg Variation
 >
 > Deliberately excluded: archive.org's `unlockedrecordings` / `album_recordings` LP rips. They have far better metadata but carry no licence and are digitised commercial records.
 
+**Composer portraits** come from Wikimedia Commons — public-domain paintings and photographs, referenced by `Special:FilePath` so Commons resizes them server-side and no API call or hashed URL is needed. The map lives in `src/lib/composers.ts`; composers without one (Pachelbel, of whom no authenticated likeness survives) fall back to initials.
+
 **Two secondary strands:** a *Contemporary* section (living independent composers via Jamendo's Creative Commons catalog) and **your own files** — import MP3/FLAC/M4A/OGG, stored in the browser and played fully offline.
 
 ## How the classical model works

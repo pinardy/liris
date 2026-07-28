@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import ComposerAvatar from '../components/classical/ComposerAvatar'
 import PageHeading from '../components/common/PageHeading'
 import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
@@ -59,9 +60,12 @@ export default function Composers() {
             to={`/composer/${entry.slug}`}
             className="flex items-center gap-3 rounded-lg bg-zinc-900/60 p-3 transition-colors hover:bg-zinc-800"
           >
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-800 to-zinc-800 text-sm font-bold text-indigo-200">
-              {(entry.composer?.surname ?? entry.name).slice(0, 2)}
-            </span>
+            <ComposerAvatar
+              slug={entry.slug}
+              name={entry.composer?.surname ?? entry.name}
+              className="size-12"
+              width={120}
+            />
             <span className="min-w-0">
               <span className="block truncate text-sm font-semibold">
                 {entry.composer?.surname ?? entry.name}

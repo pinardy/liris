@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import ArtworkImage from '../components/common/ArtworkImage'
 import { ErrorMessage, Spinner } from '../components/common/Status'
 import { PlayIcon } from '../components/common/icons'
+import ComposerAvatar from '../components/classical/ComposerAvatar'
 import WorkCard from '../components/classical/WorkCard'
 import TrackList from '../components/tracks/TrackList'
 import { useAsync } from '../hooks/useAsync'
@@ -86,9 +87,12 @@ export default function Home() {
                   to={`/composer/${entry.slug}`}
                   className="group w-28 shrink-0 text-center"
                 >
-                  <span className="flex aspect-square w-full items-center justify-center rounded-full bg-gradient-to-br from-indigo-800 to-zinc-800 text-2xl font-bold text-indigo-200 transition-transform group-hover:scale-105">
-                    {(entry.composer?.surname ?? entry.name).slice(0, 2)}
-                  </span>
+                  <ComposerAvatar
+                    slug={entry.slug}
+                    name={entry.composer?.surname ?? entry.name}
+                    className="aspect-square w-full transition-transform group-hover:scale-105"
+                    width={240}
+                  />
                   <span className="mt-2 block truncate text-sm font-semibold">
                     {entry.composer?.surname ?? entry.name}
                   </span>

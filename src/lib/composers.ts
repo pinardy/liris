@@ -134,6 +134,94 @@ export const composers: Composer[] = [
 ]
 
 /**
+ * Public-domain portraits from Wikimedia Commons, keyed by composer slug.
+ * Values are Commons filenames, already percent-encoded, so they interpolate
+ * straight into a URL. Kept separate from the table above so adding artwork
+ * never risks disturbing the catalog data.
+ *
+ * Pachelbel is deliberately absent: no authenticated likeness of him survives,
+ * so he falls back to initials.
+ */
+const COMPOSER_IMAGES: Record<string, string> = {
+  palestrina: 'Giovanni_Pierluigi_da_Palestrina.jpg',
+  tallis: 'Tallis_crop.png',
+  byrd: 'William_Byrd_%281543-1623%29.jpg',
+  monteverdi: 'Bernardo_Strozzi_-_Claudio_Monteverdi_%28c.1630%29.jpg',
+  purcell: 'Henry_Purcell_Closterman.jpg',
+  corelli: 'Arcangelo_Corelli%2C_portrait_by_Hugh_Howard_%281697%29.jpg',
+  albinoni: 'Tomaso_Albinoni.jpg',
+  vivaldi: 'Vivaldi.jpg',
+  telemann: 'Telemann.jpg',
+  bach: 'Johann_Sebastian_Bach.jpg',
+  handel: 'George_Frideric_Handel_by_Balthasar_Denner.jpg',
+  scarlatti: 'Retrato_de_Domenico_Scarlatti.jpg',
+  gluck:
+    'Joseph_Siffred_Duplessis_-_Christoph_Willibald_Gluck_-_Google_Art_Project.jpg',
+  haydn: 'Joseph_Haydn.jpg',
+  boccherini: 'Portrait_de_Luigi_Boccherini%2C_1814_%28cropped%29.jpg',
+  mozart: 'The_Mozart_Family_-_Wolfgang_Amadeus_Mozart_headshot.jpg',
+  clementi: 'Muzio_Clementi.jpeg',
+  beethoven:
+    'Joseph_Karl_Stieler%27s_Beethoven_mit_dem_Manuskript_der_Missa_solemnis.jpg',
+  weber: 'Caroline_Bardua_-_Bildnis_des_Komponisten_Carl_Maria_von_Weber.jpg',
+  rossini: 'Rossini_young-circa-1815.jpg',
+  schubert: 'Franz_Schubert_by_Wilhelm_August_Rieder_1875.jpg',
+  donizetti: 'Francesco_Coghetti%2C_Ritratto_di_Gaetano_Donizetti.JPG',
+  berlioz: 'Hector-Berlioz-1845.png',
+  mendelssohn: 'Felix_Mendelssohn_Bartholdy_by_Eduard_Magnus_%281833%29.jpg',
+  chopin: 'Frederic_Chopin_photo.jpeg',
+  schumann: 'Robert_Schumann_1839.jpg',
+  liszt: 'Franz_Liszt_by_Herman_Biow-_1843.png',
+  wagner: 'RichardWagner.jpg',
+  verdi: 'Giuseppe_Verdi_by_Ferdinand_Mulnier_BW.jpg',
+  franck: 'C%C3%A9sar_Franck_by_Pierre_Petit.jpg',
+  smetana: 'Smetana_LCCN2014716851_%28cropped%29.jpg',
+  bruckner: 'Anton_Bruckner.jpg',
+  'strauss-ii': 'Johann_Strauss_II_by_Fritz_Luckhardt_3-4_crop.jpg',
+  borodin: 'Borodin.jpg',
+  brahms: 'JohannesBrahms_%28cropped%29.jpg',
+  'saint-saens': 'Saint-Sa%C3%ABns-circa-1880.jpg',
+  bizet: 'Georges_bizet.jpg',
+  bruch: 'Max_bruch.jpg',
+  mussorgsky: 'Moscou%2C_galerie_Tretiakov_Mussorgsky_by_Ilya_Repin.jpg',
+  tchaikovsky: 'Tchaikovsky_by_Reutlinger_%28cropped%29.jpg',
+  dvorak: 'Dvorak.jpg',
+  grieg: 'Edvard_Grieg_portrait_%28cropped%29.jpg',
+  'rimsky-korsakov': 'Rimsky-Korsakov_Serow_crop.png',
+  faure: 'John_Singer_Sargent_-_Gabriel_Faur%C3%A9.jpg',
+  elgar: 'Edward_Elgar.jpg',
+  puccini: 'Giacomo_Puccini_LCCN2005685154_%281%29_cropped.jpg',
+  mahler: 'Photo_of_Gustav_Mahler_by_Moritz_N%C3%A4hr_01.jpg',
+  debussy: 'Claude_Debussy_by_Atelier_Nadar.jpg',
+  'strauss-r': '1904_Richard_Strauss_%28cropped%29.jpg',
+  sibelius: 'Jean_Sibelius_circa_1898-1900_%283x4_cropped%29.jpg',
+  satie: 'Ericsatie.jpg',
+  suk: 'Josef_Suk%281%29.jpg',
+  rachmaninoff: 'Sergei_Rachmaninoff_cph.3a40575.jpg',
+  holst: 'Gustav_Holst.jpg',
+  ravel: 'Maurice_Ravel_1925.jpg',
+  'vaughan-williams': 'Ralph_Vaughan_Williams_1920s.png',
+  stravinsky: 'Igor_Stravinsky_LOC_32392u.jpg',
+  prokofiev: 'Sergei_Prokofiev_circa_1918_over_Chair_Bain.jpg',
+  gershwin: 'Portrait_of_George_Gershwin_LCCN2004662906.jpg',
+  copland: 'Aaron_Copland_1970.JPG',
+  shostakovich:
+    '%D0%9A%D0%BE%D0%BC%D0%BF%D0%BE%D0%B7%D0%B8%D1%82%D0%BE%D1%80_%D0%94%D0%BC%D0%B8%D1%82%D1%80%D0%B8%D0%B9_%D0%94%D0%BC%D0%B8%D1%82%D1%80%D0%B8%D0%B5%D0%B2%D0%B8%D1%87_%D0%A8%D0%BE%D1%81%D1%82%D0%B0%D0%BA%D0%BE%D0%B2%D0%B8%D1%87.jpg',
+}
+
+/**
+ * Portrait URL for a composer, or undefined when we have no image. Commons'
+ * Special:FilePath redirects to the file and resizes server-side, so no API
+ * call or hashed URL is needed.
+ */
+export function composerImageUrl(slug: string, width = 400): string | undefined {
+  const file = COMPOSER_IMAGES[slug]
+  return file
+    ? `https://commons.wikimedia.org/wiki/Special:FilePath/${file}?width=${width}`
+    : undefined
+}
+
+/**
  * Windows-1252 code points that don't sit at their own byte value, needed to
  * reverse mojibake byte-for-byte (e.g. the trademark sign came from byte 0x99).
  */
