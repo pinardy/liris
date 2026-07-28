@@ -264,24 +264,34 @@ function buildIndex(works: Work[], failed: string[]): ClassicalIndex {
 
 let indexPromise: Promise<ClassicalIndex> | null = null
 
-/** Bump when parsing/normalisation changes so stale shapes are discarded. */
-const WORKS_CACHE_KEY = 'classical-works-v1'
+/** Bump when parsing/normalisation or the cached shape changes. */
+const WORKS_CACHE_KEY = 'classical-works-v2'
 
-async function loadCachedWorks(): Promise<Work[] | null> {
+/** Failures are cached WITH the works so a warm boot can still report the
+ *  gaps the last fetch hit — otherwise failedCollections is always empty
+ *  after the first visit. */
+interface CachedCatalog {
+  works: Work[]
+  failed: string[]
+}
+
+async function loadCachedCatalog(): Promise<CachedCatalog | null> {
   try {
     const { db } = await import('../db/db')
     const row = await db.cache.get(WORKS_CACHE_KEY)
-    const works = row?.value as Work[] | undefined
-    return Array.isArray(works) && works.length > 0 ? works : null
+    const cached = row?.value as CachedCatalog | undefined
+    return cached && Array.isArray(cached.works) && cached.works.length > 0
+      ? { works: cached.works, failed: Array.isArray(cached.failed) ? cached.failed : [] }
+      : null
   } catch {
     return null
   }
 }
 
-async function saveCachedWorks(works: Work[]): Promise<void> {
+async function saveCachedCatalog(catalog: CachedCatalog): Promise<void> {
   try {
     const { db } = await import('../db/db')
-    await db.cache.put({ key: WORKS_CACHE_KEY, value: works, savedAt: Date.now() })
+    await db.cache.put({ key: WORKS_CACHE_KEY, value: catalog, savedAt: Date.now() })
   } catch {
     // Cache is an optimisation only; quota errors etc. are non-fatal.
   }
@@ -310,17 +320,17 @@ async function fetchWorks(): Promise<{ works: Work[]; failed: string[] }> {
 export function getClassicalIndex(): Promise<ClassicalIndex> {
   if (!indexPromise) {
     const promise = (async () => {
-      const cached = await loadCachedWorks()
+      const cached = await loadCachedCatalog()
       if (cached) {
         void fetchWorks()
-          .then(({ works }) => {
-            if (works.length > 0) return saveCachedWorks(works)
+          .then(({ works, failed }) => {
+            if (works.length > 0) return saveCachedCatalog({ works, failed })
           })
           .catch(() => {})
-        return buildIndex(cached, [])
+        return buildIndex(cached.works, cached.failed)
       }
       const { works, failed } = await fetchWorks()
-      if (works.length > 0) void saveCachedWorks(works)
+      if (works.length > 0) void saveCachedCatalog({ works, failed })
       const index = buildIndex(works, failed)
       // Every collection failing means we're offline with nothing cached —
       // don't memoise that, so a later visit can retry.
