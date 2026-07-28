@@ -1,3 +1,4 @@
+import { isSameWork } from '../lib/classical'
 import type { Track } from '../types/model'
 import { updateMediaSession, updatePositionState } from './mediaSession'
 import { usePlayerStore } from './playerStore'
@@ -223,6 +224,12 @@ export async function reloadCurrentTrack(): Promise<void> {
   if (Number.isFinite(pos) && pos > 1 && !isRadioTrack(track)) seek(pos)
 }
 
+/** Id of the track the engine currently has loaded, or null before any load.
+ *  Lets the store detect a restored-but-not-loaded session on resume. */
+export function loadedTrackId(): string | null {
+  return currentLoad?.track.id ?? null
+}
+
 export function play(): void {
   if (localStorage.getItem(FX_ENABLED_KEY) === '1' && active !== radioAudio) {
     void import('./audioFx').then((fx) => fx.resumeContext())
@@ -391,6 +398,22 @@ function wire(el: HTMLAudioElement) {
     if (s.sleepAtTrackEnd) {
       usePlayerStore.setState({ sleepAtTrackEnd: false, isPlaying: false })
       return
+    }
+    if (s.sleepAtWorkEnd) {
+      const idx = nextIndex(s.queue.length, s.currentIndex, s.repeat, true)
+      const current = s.queue[s.currentIndex]
+      const upcoming = idx === null ? undefined : s.queue[idx]
+      // The work is over when nothing follows, when the next track belongs to
+      // a different work, or under repeat-one (that work would never end).
+      if (
+        !current ||
+        !upcoming ||
+        idx === s.currentIndex ||
+        !isSameWork(current, upcoming)
+      ) {
+        usePlayerStore.setState({ sleepAtWorkEnd: false, isPlaying: false })
+        return
+      }
     }
     s.next(true)
   })

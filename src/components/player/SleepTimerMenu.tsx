@@ -7,16 +7,17 @@ const OPTIONS = [15, 30, 45, 60] as const
 export default function SleepTimerMenu() {
   const sleepTimerEndsAt = usePlayerStore((s) => s.sleepTimerEndsAt)
   const sleepAtTrackEnd = usePlayerStore((s) => s.sleepAtTrackEnd)
+  const sleepAtWorkEnd = usePlayerStore((s) => s.sleepAtWorkEnd)
   const setSleepTimer = usePlayerStore((s) => s.setSleepTimer)
   const [open, setOpen] = useState(false)
 
-  const active = sleepTimerEndsAt !== null || sleepAtTrackEnd
+  const active = sleepTimerEndsAt !== null || sleepAtTrackEnd || sleepAtWorkEnd
   const remainingMin =
     sleepTimerEndsAt !== null
       ? Math.max(1, Math.ceil((sleepTimerEndsAt - Date.now()) / 60_000))
       : null
 
-  function pick(option: number | 'track-end' | null) {
+  function pick(option: number | 'track-end' | 'work-end' | null) {
     setSleepTimer(option)
     setOpen(false)
   }
@@ -50,6 +51,9 @@ export default function SleepTimerMenu() {
               {sleepAtTrackEnd && (
                 <span className="ml-1 normal-case text-accent">· end of track</span>
               )}
+              {sleepAtWorkEnd && (
+                <span className="ml-1 normal-case text-accent">· end of work</span>
+              )}
             </p>
             {OPTIONS.map((min) => (
               <button
@@ -67,6 +71,14 @@ export default function SleepTimerMenu() {
               className="block w-full px-3 py-1.5 text-left text-sm text-zinc-200 hover:bg-zinc-700"
             >
               End of track
+            </button>
+            <button
+              type="button"
+              onClick={() => pick('work-end')}
+              title="Pause after the last movement of the current work"
+              className="block w-full px-3 py-1.5 text-left text-sm text-zinc-200 hover:bg-zinc-700"
+            >
+              End of work
             </button>
             {active && (
               <button

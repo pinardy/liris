@@ -11,6 +11,18 @@ function initialVolume(): number {
   return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1
 }
 
+/** What survives a reload: the queue and where in it the listener was.
+ *  Volume/EQ persist separately; sleep timers deliberately do not survive. */
+export interface PersistedSession {
+  queue: Track[]
+  currentIndex: number
+  originalQueue: Track[] | null
+  positionSec: number
+  shuffle: boolean
+  repeat: RepeatMode
+  radioMode: boolean
+}
+
 export interface PlayerState {
   queue: Track[]
   currentIndex: number
@@ -27,6 +39,9 @@ export interface PlayerState {
   sleepTimerEndsAt: number | null
   /** Pause when the current track finishes instead of advancing. */
   sleepAtTrackEnd: boolean
+  /** Pause once the current WORK finishes — after the last movement whose
+   *  album/artist match the playing track's. The natural unit for classical. */
+  sleepAtWorkEnd: boolean
   /** True while the queue was built by startRadio (cleared by other plays). */
   radioMode: boolean
 
@@ -51,10 +66,18 @@ export interface PlayerState {
   /** Insert a track right after the currently playing one. */
   playNext: (track: Track) => void
   removeFromQueue: (index: number) => void
+  /** Empty the queue and stop playback. */
+  clearQueue: () => void
   playFromQueue: (index: number) => void
   moveInQueue: (from: number, to: number) => void
-  /** minutes, 'track-end', or null to cancel. */
-  setSleepTimer: (option: number | 'track-end' | null) => void
+  /**
+   * Apply a persisted session on boot: the queue and position come back
+   * paused; the engine only loads audio when the user actually hits play.
+   * No-ops if playback already started (the restore read is async).
+   */
+  restoreSession: (saved: PersistedSession) => void
+  /** minutes, 'track-end', 'work-end', or null to cancel. */
+  setSleepTimer: (option: number | 'track-end' | 'work-end' | null) => void
   /**
    * Wall-clock check for timer expiry. Mobile browsers throttle background
    * timers heavily, so setTimeout alone can fire minutes late — the engine
@@ -96,6 +119,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     repeat: 'off',
     sleepTimerEndsAt: null,
     sleepAtTrackEnd: false,
+    sleepAtWorkEnd: false,
     radioMode: false,
 
     playQueue: (tracks, startIndex = 0) => {
@@ -128,10 +152,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     togglePlay: () => {
-      const { isPlaying, queue, currentIndex } = get()
-      if (currentIndex < 0 || !queue[currentIndex]) return
-      if (isPlaying) engine.pause()
-      else engine.play()
+      const { isPlaying, queue, currentIndex, positionSec } = get()
+      const track = queue[currentIndex]
+      if (!track) return
+      if (isPlaying) {
+        engine.pause()
+        return
+      }
+      // After a session restore (or removing the paused row) the engine may
+      // hold a different track than the store points at — load the right one
+      // and pick up at the saved position instead of resuming a stale element.
+      if (engine.loadedTrackId() !== track.id) {
+        const resumeAt = positionSec
+        void engine.loadAndPlay(track).then(() => {
+          if (resumeAt > 1 && !track.id.startsWith('radio:')) engine.seek(resumeAt)
+        })
+        return
+      }
+      engine.play()
     },
 
     next: (auto = false) => {
@@ -222,7 +260,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     addToQueue: (track) => {
-      const { queue, currentIndex } = get()
+      const { queue } = get()
       if (queue.length === 0) {
         get().playQueue([track], 0)
         return
@@ -231,20 +269,72 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       // Keep the un-shuffled order in sync so un-shuffle doesn't lose the addition.
       const { originalQueue } = get()
       if (originalQueue) set({ originalQueue: [...originalQueue, track] })
-      void currentIndex
     },
 
     removeFromQueue: (index) => {
-      const { queue, currentIndex } = get()
-      if (index === currentIndex) return // removing the playing track is not supported
+      const { queue, currentIndex, originalQueue, isPlaying } = get()
+      const removed = queue[index]
+      if (!removed) return
       const newQueue = queue.filter((_, i) => i !== index)
+      // Keep the un-shuffled order in sync (drop one occurrence of this track).
+      if (originalQueue) {
+        const oi = originalQueue.findIndex((t) => t.id === removed.id)
+        if (oi >= 0) set({ originalQueue: originalQueue.filter((_, i) => i !== oi) })
+      }
+      if (index !== currentIndex) {
+        set({
+          queue: newQueue,
+          currentIndex: index < currentIndex ? currentIndex - 1 : currentIndex,
+        })
+        return
+      }
+      // Removing the playing row: hand off to whichever track slides in.
+      if (newQueue.length === 0) {
+        get().clearQueue()
+        return
+      }
+      const idx = Math.min(index, newQueue.length - 1)
+      set({ queue: newQueue })
+      if (isPlaying) {
+        startTrack(idx)
+      } else {
+        // Stay paused; togglePlay notices the engine holds the removed track
+        // and loads this one on resume.
+        set({ currentIndex: idx, positionSec: 0, durationSec: newQueue[idx].durationSec })
+      }
+    },
+
+    clearQueue: () => {
+      engine.pause()
       set({
-        queue: newQueue,
-        currentIndex: index < currentIndex ? currentIndex - 1 : currentIndex,
+        queue: [],
+        currentIndex: -1,
+        originalQueue: null,
+        isPlaying: false,
+        positionSec: 0,
+        durationSec: 0,
+        radioMode: false,
       })
     },
 
     playFromQueue: (index) => startTrack(index),
+
+    restoreSession: (saved) => {
+      const { queue, currentIndex } = get()
+      if (queue.length > 0 || currentIndex >= 0) return
+      const track = saved.queue[saved.currentIndex]
+      if (!track) return
+      set({
+        queue: saved.queue,
+        currentIndex: saved.currentIndex,
+        originalQueue: saved.originalQueue,
+        shuffle: saved.shuffle,
+        repeat: saved.repeat,
+        radioMode: saved.radioMode,
+        positionSec: saved.positionSec,
+        durationSec: track.durationSec,
+      })
+    },
 
     moveInQueue: (from, to) => {
       const { queue, currentIndex } = get()
@@ -274,14 +364,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       // A new (or cancelled) timer undoes any fade already in progress.
       engine.setSleepFade(1)
       if (option === null) {
-        set({ sleepTimerEndsAt: null, sleepAtTrackEnd: false })
+        set({ sleepTimerEndsAt: null, sleepAtTrackEnd: false, sleepAtWorkEnd: false })
         return
       }
       if (option === 'track-end') {
-        set({ sleepAtTrackEnd: true, sleepTimerEndsAt: null })
+        set({ sleepAtTrackEnd: true, sleepAtWorkEnd: false, sleepTimerEndsAt: null })
         return
       }
-      set({ sleepTimerEndsAt: Date.now() + option * 60_000, sleepAtTrackEnd: false })
+      if (option === 'work-end') {
+        set({ sleepAtWorkEnd: true, sleepAtTrackEnd: false, sleepTimerEndsAt: null })
+        return
+      }
+      set({
+        sleepTimerEndsAt: Date.now() + option * 60_000,
+        sleepAtTrackEnd: false,
+        sleepAtWorkEnd: false,
+      })
       sleepTimeout = setTimeout(() => {
         sleepTimeout = null
         get().checkSleepTimer()

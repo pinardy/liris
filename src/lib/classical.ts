@@ -157,6 +157,15 @@ export function workIdForTrack(track: Track): string | undefined {
   return `${composer?.slug ?? slugify(track.artist)}--${slugify(track.album)}`
 }
 
+/**
+ * Whether two tracks are movements of the same work. Mirrors how the catalog
+ * fills Track: `album` carries the normalized work title and `artist` the
+ * composer. Tracks without an album (radio, sparse local files) never group.
+ */
+export function isSameWork(a: Track, b: Track): boolean {
+  return Boolean(a.album) && a.album === b.album && a.artist === b.artist
+}
+
 export function workDuration(work: Work): number {
   return work.recordings[0]?.durationSec ?? 0
 }
