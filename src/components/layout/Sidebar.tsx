@@ -1,18 +1,23 @@
 import { NavLink } from 'react-router'
-import { MusicNoteIcon } from '../common/icons'
 import { navItems } from './navItems'
 
 export default function Sidebar() {
   return (
     <aside className="hidden w-60 shrink-0 flex-col gap-1 border-r border-zinc-800 bg-black p-4 md:flex">
-      <div className="mb-6 px-2">
-        <div className="flex items-center gap-2 text-lg font-bold">
-          <MusicNoteIcon className="text-accent" />
-          Liris
+      <div className="mb-6 flex items-center gap-2.5 px-2">
+        <img
+          src={`${import.meta.env.BASE_URL}logo.png`}
+          alt=""
+          width="40"
+          height="40"
+          className="size-10 rounded-lg"
+        />
+        <div>
+          <div className="text-lg font-bold leading-none">Liris</div>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+            Classical
+          </p>
         </div>
-        <p className="mt-0.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-          Classical
-        </p>
       </div>
       <nav className="flex flex-1 flex-col gap-1">
         {navItems.map(({ to, label, icon: ItemIcon }) => (

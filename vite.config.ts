@@ -15,7 +15,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon-32.png', 'favicon-96.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Liris Classical',
         short_name: 'Liris',
@@ -62,6 +62,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Large install-time icons are fetched by the OS/browser, not the app,
+        // so keeping them out of the precache saves ~270 KB per install.
+        globIgnores: ['**/icon-512*.png', '**/apple-touch-icon.png'],
         navigateFallback: 'index.html',
         // IMPORTANT: audio stream URLs (prod-*.jamendo.com) must NOT match any
         // runtime route — audio relies on HTTP Range requests, which a cached
