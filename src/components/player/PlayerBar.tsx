@@ -61,7 +61,12 @@ export default function PlayerBar() {
           <ArtworkImage src={artworkUrl} className="size-12" />
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{track.title}</p>
-            <p className="truncate text-xs text-zinc-400">{track.artist}</p>
+            <p className="truncate text-xs text-zinc-400">
+              {/* A movement title alone ('III. Allegro') is meaningless — name the work. */}
+              {track.album && track.album !== track.title
+                ? `${track.album} · ${track.artist}`
+                : track.artist}
+            </p>
           </div>
         </button>
 

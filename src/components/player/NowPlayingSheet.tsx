@@ -48,6 +48,9 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
         />
         <div className="w-full max-w-xs text-center">
           <p className="truncate text-xl font-bold">{track.title}</p>
+          {track.album && track.album !== track.title && (
+            <p className="mt-1 truncate text-sm text-zinc-300">{track.album}</p>
+          )}
           <p className="truncate text-sm text-zinc-400">{track.artist}</p>
         </div>
       </div>
