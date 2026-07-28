@@ -23,7 +23,14 @@ export default function Composers() {
 
   return (
     <>
-      <PageHeading title="Composers" />
+      <PageHeading title="Composers">
+        <Link
+          to="/timeline"
+          className="rounded-full border border-zinc-700 px-4 py-1.5 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+        >
+          Timeline →
+        </Link>
+      </PageHeading>
 
       <div className="mb-6 flex flex-wrap gap-2">
         <button

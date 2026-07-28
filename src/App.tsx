@@ -12,6 +12,7 @@ import PlaylistPage from './pages/PlaylistPage'
 import Favorites from './pages/Favorites'
 import Composers from './pages/Composers'
 import ComposerPage from './pages/ComposerPage'
+import Timeline from './pages/Timeline'
 import WorkPage from './pages/WorkPage'
 import BrowsePage from './pages/BrowsePage'
 import CollectionPage from './pages/CollectionPage'
@@ -29,6 +30,7 @@ function App() {
             <Route path="/search" element={<Search />} />
             <Route path="/composers" element={<Composers />} />
             <Route path="/composer/:slug" element={<ComposerPage />} />
+            <Route path="/timeline" element={<Timeline />} />
             <Route path="/work/:id" element={<WorkPage />} />
             <Route path="/period/:slug" element={<BrowsePage mode="period" />} />
             <Route path="/form/:slug" element={<BrowsePage mode="form" />} />
