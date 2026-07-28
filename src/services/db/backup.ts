@@ -1,11 +1,11 @@
-import type { Playlist, Track } from '../../types/model'
+import type { Playlist, SmartPlaylist, Track } from '../../types/model'
 import { db, type FavoriteRecord } from './db'
 
 /**
- * Backup = playlists + favorites + the non-local track snapshots they need to
- * render. Local files (audio blobs) are NOT included — they're copies of the
- * user's own files; playlist entries pointing at missing local tracks are
- * simply dropped at render time.
+ * Backup = playlists (regular and smart) + favorites + the non-local track
+ * snapshots they need to render. Local files (audio blobs) are NOT included —
+ * they're copies of the user's own files; playlist entries pointing at
+ * missing local tracks are simply dropped at render time.
  */
 
 interface BackupFile {
@@ -13,13 +13,16 @@ interface BackupFile {
   version: 1
   exportedAt: string
   playlists: Playlist[]
+  /** Absent in backups written before smart playlists existed. */
+  smartPlaylists?: SmartPlaylist[]
   favorites: FavoriteRecord[]
   tracks: Track[]
 }
 
 export async function exportBackup(): Promise<Blob> {
-  const [playlists, favorites, tracks] = await Promise.all([
+  const [playlists, smartPlaylists, favorites, tracks] = await Promise.all([
     db.playlists.toArray(),
+    db.smartPlaylists.toArray(),
     db.favorites.toArray(),
     db.tracks.where('source').notEqual('local').toArray(),
   ])
@@ -28,6 +31,7 @@ export async function exportBackup(): Promise<Blob> {
     version: 1,
     exportedAt: new Date().toISOString(),
     playlists,
+    smartPlaylists,
     favorites,
     tracks,
   }
@@ -41,13 +45,18 @@ export async function importBackup(
   if (data.app !== 'liris' || !Array.isArray(data.playlists)) {
     throw new Error('Not a valid liris backup file')
   }
-  await db.transaction('rw', [db.tracks, db.playlists, db.favorites], async () => {
-    await db.tracks.bulkPut(data.tracks ?? [])
-    await db.playlists.bulkPut(data.playlists!)
-    await db.favorites.bulkPut(data.favorites ?? [])
-  })
+  await db.transaction(
+    'rw',
+    [db.tracks, db.playlists, db.smartPlaylists, db.favorites],
+    async () => {
+      await db.tracks.bulkPut(data.tracks ?? [])
+      await db.playlists.bulkPut(data.playlists!)
+      await db.smartPlaylists.bulkPut(data.smartPlaylists ?? [])
+      await db.favorites.bulkPut(data.favorites ?? [])
+    },
+  )
   return {
-    playlists: data.playlists.length,
+    playlists: data.playlists.length + (data.smartPlaylists?.length ?? 0),
     favorites: data.favorites?.length ?? 0,
   }
 }

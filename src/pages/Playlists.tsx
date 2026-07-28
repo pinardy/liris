@@ -3,14 +3,22 @@ import { Link } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import PageHeading from '../components/common/PageHeading'
 import { EmptyState } from '../components/common/Status'
-import { PlaylistIcon, PlusIcon } from '../components/common/icons'
+import { PlaylistIcon, PlusIcon, SparklesIcon } from '../components/common/icons'
 import Modal from '../components/common/Modal'
+import SmartPlaylistModal from '../components/playlists/SmartPlaylistModal'
+import { describeSmartRules } from '../lib/smartRules'
 import { exportBackup, importBackup } from '../services/db/backup'
 import { createPlaylist, getPlaylists } from '../services/db/playlists'
+import {
+  createSmartPlaylist,
+  getSmartPlaylists,
+} from '../services/db/smartPlaylists'
 
 export default function Playlists() {
   const playlists = useLiveQuery(getPlaylists, [])
+  const smartPlaylists = useLiveQuery(getSmartPlaylists, [])
   const [creating, setCreating] = useState(false)
+  const [creatingSmart, setCreatingSmart] = useState(false)
   const [name, setName] = useState('')
   const importInput = useRef<HTMLInputElement>(null)
   const [backupMessage, setBackupMessage] = useState<string>()
@@ -48,14 +56,25 @@ export default function Playlists() {
   return (
     <>
       <PageHeading title="Playlists">
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-black transition-colors hover:bg-zinc-200"
-        >
-          <PlusIcon width="16" height="16" />
-          New playlist
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-black transition-colors hover:bg-zinc-200"
+          >
+            <PlusIcon width="16" height="16" />
+            New playlist
+          </button>
+          <button
+            type="button"
+            onClick={() => setCreatingSmart(true)}
+            title="A playlist built from rules — period, form, instrument, length — that stays current as the catalog grows"
+            className="flex items-center gap-2 rounded-full bg-zinc-800 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-zinc-700"
+          >
+            <SparklesIcon width="16" height="16" />
+            Smart playlist
+          </button>
+        </div>
       </PageHeading>
 
       <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
@@ -116,6 +135,44 @@ export default function Playlists() {
             </button>
           </form>
         </Modal>
+      )}
+
+      {creatingSmart && (
+        <SmartPlaylistModal
+          onClose={() => setCreatingSmart(false)}
+          onSave={(smartName, rules) => {
+            void createSmartPlaylist(smartName, rules).then(() =>
+              setCreatingSmart(false),
+            )
+          }}
+        />
+      )}
+
+      {smartPlaylists && smartPlaylists.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">
+            Smart playlists
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+            {smartPlaylists.map((p) => (
+              <Link
+                key={p.id}
+                to={`/smart/${p.id}`}
+                className="group flex flex-col gap-2 rounded-lg bg-zinc-900/60 p-3 transition-colors hover:bg-zinc-800"
+              >
+                <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 text-accent">
+                  <SparklesIcon width="40%" height="40%" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{p.name}</p>
+                  <p className="truncate text-xs text-zinc-400">
+                    {describeSmartRules(p.rules)}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       {playlists && playlists.length > 0 ? (

@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { Playlist, Track } from '../../types/model'
+import type { Playlist, SmartPlaylist, Track } from '../../types/model'
 
 export interface FileRecord {
   key: string
@@ -59,6 +59,7 @@ export const db = new Dexie('music-player') as Dexie & {
   recentlyPlayed: EntityTable<RecentRecord, 'trackId'>
   plays: EntityTable<PlayRecord, 'id'>
   cache: EntityTable<CacheRecord, 'key'>
+  smartPlaylists: EntityTable<SmartPlaylist, 'id'>
 }
 
 db.version(1).stores({
@@ -76,4 +77,8 @@ db.version(2).stores({
 
 db.version(3).stores({
   cache: 'key',
+})
+
+db.version(4).stores({
+  smartPlaylists: 'id, name, updatedAt',
 })
