@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { toast } from '../../lib/toast'
 import type { Track } from '../../types/model'
 import {
   addTrackToPlaylist,
@@ -22,8 +23,10 @@ export default function PlaylistPickerModal({
 
   async function pick(playlistId: string) {
     const added = await addTrackToPlaylist(playlistId, track)
-    if (added) onClose()
-    else setFeedback('Already in that playlist')
+    if (added) {
+      toast('Added to playlist')
+      onClose()
+    } else setFeedback('Already in that playlist')
   }
 
   async function createAndAdd() {
@@ -31,6 +34,7 @@ export default function PlaylistPickerModal({
     if (!name) return
     const playlist = await createPlaylist(name)
     await addTrackToPlaylist(playlist.id, track)
+    toast(`Added to “${playlist.name}”`)
     onClose()
   }
 

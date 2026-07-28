@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { onToast } from '../../lib/toast'
 import { onTrackError } from '../../player/audioEngine'
 
 interface Toast {
@@ -8,16 +9,24 @@ interface Toast {
 
 let toastId = 0
 
-/** Lightweight toast list; currently fed by playback errors. */
+/** Lightweight toast list: playback errors plus app-wide action confirmations. */
 export default function Toaster() {
   const [toasts, setToasts] = useState<Toast[]>([])
 
   useEffect(() => {
-    return onTrackError((track) => {
+    function push(message: string) {
       const id = ++toastId
-      setToasts((t) => [...t, { id, message: `Couldn't play “${track.title}” — skipped.` }])
+      setToasts((t) => [...t, { id, message }])
       setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000)
-    })
+    }
+    const offError = onTrackError((track) =>
+      push(`Couldn't play “${track.title}” — skipped.`),
+    )
+    const offToast = onToast(push)
+    return () => {
+      offError()
+      offToast()
+    }
   }, [])
 
   if (toasts.length === 0) return null

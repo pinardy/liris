@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react'
+import { toast } from '../../lib/toast'
 import { usePlayerStore } from '../../player/playerStore'
 import {
   downloadTrack,
@@ -40,8 +41,10 @@ export default function TrackActions({
     setDownloading(true)
     try {
       await downloadTrack(track)
+      toast('Downloaded for offline listening')
     } catch (err) {
       console.error('Download failed', err)
+      toast('Download failed — try again')
     } finally {
       setDownloading(false)
     }
@@ -86,6 +89,7 @@ export default function TrackActions({
               label="Play next"
               onClick={() => {
                 playNext(track)
+                toast('Playing next')
                 setMenuOpen(false)
               }}
             />
@@ -93,6 +97,7 @@ export default function TrackActions({
               label="Add to queue"
               onClick={() => {
                 addToQueue(track)
+                toast('Added to queue')
                 setMenuOpen(false)
               }}
             />
