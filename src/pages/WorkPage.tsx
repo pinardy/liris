@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
+import TermChips from '../components/classical/TermChips'
 import AboutBlurb from '../components/common/AboutBlurb'
 import ArtworkImage from '../components/common/ArtworkImage'
 import { PlayIcon } from '../components/common/icons'
@@ -129,6 +130,8 @@ export default function WorkPage() {
         tracks={recording.tracks}
         onPlay={(i) => playQueue(recording.tracks, i)}
       />
+
+      <TermChips texts={[work.title, ...recording.tracks.map((t) => t.title)]} />
 
       <p className="mt-6 text-xs text-zinc-600">
         From{' '}
