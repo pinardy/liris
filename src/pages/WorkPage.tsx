@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
+import DownloadWorkButton from '../components/classical/DownloadWorkButton'
 import TermChips from '../components/classical/TermChips'
 import AboutBlurb from '../components/common/AboutBlurb'
 import ArtworkImage from '../components/common/ArtworkImage'
@@ -79,6 +80,7 @@ export default function WorkPage() {
               <PlayIcon width="16" height="16" />
               Play
             </button>
+            <DownloadWorkButton tracks={recording.tracks} />
             <a
               href={imslpSearchUrl(`${work.title} ${work.composerName}`)}
               target="_blank"
