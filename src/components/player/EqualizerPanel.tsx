@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { isIOS } from '../../lib/platform'
 import {
   EQ_BAND_LABELS,
@@ -55,6 +56,8 @@ function Visualizer() {
 
 export default function EqualizerPanel() {
   const [open, setOpen] = useState(false)
+  // A mobile back swipe closes the panel while it's open.
+  useBackDismiss(() => setOpen(false), open)
   const [enabled, setEnabled] = useState(isFxEnabled)
   const [gains, setGains] = useState(loadGains)
   const [enabling, setEnabling] = useState(false)

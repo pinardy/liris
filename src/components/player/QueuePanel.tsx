@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
 import { usePlayerStore } from '../../player/playerStore'
 import { formatDuration } from '../../lib/format'
@@ -88,6 +89,8 @@ function QueueRow({
 }
 
 export default function QueuePanel({ onClose }: { onClose: () => void }) {
+  // A mobile back swipe closes the panel like the X button does.
+  useBackDismiss(onClose)
   const queue = usePlayerStore((s) => s.queue)
   const currentIndex = usePlayerStore((s) => s.currentIndex)
   const playFromQueue = usePlayerStore((s) => s.playFromQueue)

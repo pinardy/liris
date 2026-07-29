@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { CloseIcon } from './icons'
 
 export default function Modal({
@@ -10,6 +11,8 @@ export default function Modal({
   onClose: () => void
   children: ReactNode
 }) {
+  // A mobile back swipe closes the dialog like the X button does.
+  useBackDismiss(onClose)
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"

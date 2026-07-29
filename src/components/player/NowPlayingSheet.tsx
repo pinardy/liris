@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
 import { isSameWork, workIdForTrack } from '../../lib/classical'
 import { findComposer } from '../../lib/composers'
@@ -52,6 +53,9 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
   const [showNotes, setShowNotes] = useState(false)
   const artworkUrl = useTrackArtwork(track)
   const workId = track ? workIdForTrack(track) : undefined
+
+  // A mobile back swipe closes the sheet like the X button does.
+  useBackDismiss(onClose)
 
   if (!track) return null
 
