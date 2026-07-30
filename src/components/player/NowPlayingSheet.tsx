@@ -7,6 +7,7 @@ import { findComposer } from '../../lib/composers'
 import { formatDuration } from '../../lib/format'
 import { usePlayerStore, selectCurrentTrack } from '../../player/playerStore'
 import TermChips from '../classical/TermChips'
+import PlaybackSpeedMenu from './PlaybackSpeedMenu'
 import AboutBlurb from '../common/AboutBlurb'
 import ArtworkImage from '../common/ArtworkImage'
 import {
@@ -222,6 +223,9 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
               <span className="absolute -right-1 -top-1 text-[9px] font-bold">1</span>
             )}
           </button>
+        </div>
+        <div className="mt-3 flex justify-center">
+          <PlaybackSpeedMenu />
         </div>
       </div>
     </div>

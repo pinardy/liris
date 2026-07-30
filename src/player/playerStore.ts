@@ -5,6 +5,9 @@ import { nextIndex, prevIndex, shuffled, shuffleQueue, type RepeatMode } from '.
 
 const VOLUME_KEY = 'player-volume'
 
+/** The selectable playback speeds, slow practice through brisk review. */
+export const PLAYBACK_RATES = [0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5]
+
 function initialVolume(): number {
   const raw = localStorage.getItem(VOLUME_KEY)
   const v = raw === null ? 1 : Number(raw)
@@ -44,6 +47,11 @@ export interface PlayerState {
   sleepAtWorkEnd: boolean
   /** True while the queue was built by startRadio (cleared by other plays). */
   radioMode: boolean
+  /** Playback speed, 1 = normal. Session-only on purpose: a stale 0.7×
+   *  greeting the next session would be a trap. Radio always plays at 1×. */
+  playbackRate: number
+  /** Keep pitch constant while changing speed (off = turntable-style). */
+  preservePitch: boolean
 
   playQueue: (tracks: Track[], startIndex?: number) => void
   playTrack: (track: Track) => void
@@ -62,6 +70,8 @@ export interface PlayerState {
   seek: (sec: number) => void
   setVolume: (v: number) => void
   toggleMute: () => void
+  setPlaybackRate: (rate: number) => void
+  togglePreservePitch: () => void
   toggleShuffle: () => void
   cycleRepeat: () => void
   addToQueue: (track: Track) => void
@@ -142,6 +152,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     sleepAtTrackEnd: false,
     sleepAtWorkEnd: false,
     radioMode: false,
+    playbackRate: 1,
+    preservePitch: true,
 
     playQueue: (tracks, startIndex = 0) => {
       if (tracks.length === 0) return
@@ -237,6 +249,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       localStorage.setItem(VOLUME_KEY, String(clamped))
       set({ volume: clamped, muted: false })
       engine.setVolume(clamped, false)
+    },
+
+    setPlaybackRate: (rate) => {
+      const clamped = Math.min(2, Math.max(0.25, rate))
+      set({ playbackRate: clamped })
+      engine.setPlaybackRate(clamped, get().preservePitch)
+    },
+
+    togglePreservePitch: () => {
+      const preservePitch = !get().preservePitch
+      set({ preservePitch })
+      engine.setPlaybackRate(get().playbackRate, preservePitch)
     },
 
     toggleMute: () => {

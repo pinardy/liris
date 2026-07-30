@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { emitAppEvent } from '../lib/appEvents'
-import { usePlayerStore } from '../player/playerStore'
+import { PLAYBACK_RATES, usePlayerStore } from '../player/playerStore'
 
 function isTypingTarget(el: EventTarget | null): boolean {
   if (!(el instanceof HTMLElement)) return false
@@ -23,6 +23,7 @@ export const SHORTCUTS: { keys: string; action: string }[] = [
   { keys: 'S', action: 'Toggle shuffle' },
   { keys: 'R', action: 'Cycle repeat' },
   { keys: 'Q', action: 'Toggle queue' },
+  { keys: ', / .', action: 'Playback slower / faster' },
   { keys: '/', action: 'Search' },
   { keys: '?', action: 'This help' },
 ]
@@ -102,6 +103,19 @@ export function useKeyboardShortcuts(onToggleHelp: () => void): void {
         case 'KeyQ':
           if (hasTrack) emitAppEvent('toggle-queue')
           break
+        case 'Comma':
+        case 'Period': {
+          if (!hasTrack) break
+          const idx = PLAYBACK_RATES.indexOf(state.playbackRate)
+          // An off-list rate falls back to the nearest step via 1×'s position.
+          const cur = idx >= 0 ? idx : PLAYBACK_RATES.indexOf(1)
+          const nextIdx = Math.min(
+            PLAYBACK_RATES.length - 1,
+            Math.max(0, cur + (e.code === 'Period' ? 1 : -1)),
+          )
+          state.setPlaybackRate(PLAYBACK_RATES[nextIdx])
+          break
+        }
       }
     }
     window.addEventListener('keydown', onKeyDown)

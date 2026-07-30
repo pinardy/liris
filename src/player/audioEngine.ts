@@ -286,6 +286,25 @@ export function seek(sec: number): void {
 /** 1 = normal; ramped toward 0 by the sleep timer's final fade. */
 let sleepFade = 1
 
+/**
+ * Playback speed for the main elements (practice tool). Radio stays at 1× —
+ * live streams have no buffered future to stretch. Applied to BOTH gapless
+ * elements so an element swap keeps the chosen speed. `preservePitch` keeps
+ * the pitch constant while stretching time; turned off, slowing also lowers
+ * pitch like a turntable (≈0.944× approximates baroque A415 tuning).
+ */
+export function setPlaybackRate(rate: number, preservePitch: boolean): void {
+  for (const el of [audio, audioAlt]) {
+    el.preservesPitch = preservePitch
+    // Loading a new src resets playbackRate to defaultPlaybackRate, so the
+    // default must carry the chosen speed or every track change would snap
+    // back to 1×.
+    el.defaultPlaybackRate = rate
+    el.playbackRate = rate
+  }
+  if (active !== radioAudio) updatePositionState(active)
+}
+
 export function setVolume(volume: number, muted: boolean): void {
   // While crossfading, the ramps own each element's volume; syncing to the
   // user level here would jump both elements. applyVolume re-syncs when done.

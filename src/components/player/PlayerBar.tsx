@@ -17,6 +17,7 @@ import {
 } from '../common/icons'
 import BookmarkButton from './BookmarkButton'
 import EqualizerPanel from './EqualizerPanel'
+import PlaybackSpeedMenu from './PlaybackSpeedMenu'
 import NowPlayingSheet from './NowPlayingSheet'
 import QueuePanel from './QueuePanel'
 import SeekBar from './SeekBar'
@@ -161,6 +162,9 @@ export default function PlayerBar() {
         <div className="flex items-center justify-end gap-3">
           <span className="hidden md:block">
             <BookmarkButton />
+          </span>
+          <span className="hidden md:block">
+            <PlaybackSpeedMenu />
           </span>
           <EqualizerPanel />
           <SleepTimerMenu />
