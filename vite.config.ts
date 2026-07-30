@@ -36,6 +36,35 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        // Reuse an already-open window when the OS launches the app to open a
+        // file or handle a share, instead of spawning a fresh one.
+        launch_handler: { client_mode: 'navigate-existing' },
+        // Register the app as an opener for audio files ("Open with… Liris").
+        // Opened files arrive via window.launchQueue (see LaunchHandler).
+        file_handlers: [
+          {
+            action: `${BASE}library`,
+            accept: {
+              'audio/*': [
+                '.mp3',
+                '.flac',
+                '.m4a',
+                '.aac',
+                '.ogg',
+                '.opus',
+                '.wav',
+                '.webm',
+              ],
+            },
+          },
+        ],
+        // Appear as a share destination; the shared title/text/link lands in
+        // Search as a query (GET needs no service-worker interception).
+        share_target: {
+          action: `${BASE}search`,
+          method: 'GET',
+          params: { title: 'q', text: 'q', url: 'q' },
+        },
         // Shortcut URLs must sit inside `scope`.
         shortcuts: [
           {

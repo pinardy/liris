@@ -5,6 +5,7 @@ import Toaster from './components/common/Toaster'
 import Sidebar from './components/layout/Sidebar'
 import MobileTabBar from './components/layout/MobileTabBar'
 import ScrollMemory from './components/layout/ScrollMemory'
+import LaunchHandler from './components/layout/LaunchHandler'
 import PlayerBar from './components/player/PlayerBar'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import Home from './pages/Home'
@@ -67,6 +68,7 @@ function App() {
       <PlayerBar />
       <MobileTabBar />
       <Toaster />
+      <LaunchHandler />
       {helpOpen && <ShortcutsHelp onClose={() => setHelpOpen(false)} />}
     </div>
   )
