@@ -1,0 +1,4 @@
+# Git hooks are run by `sh`, which chokes on CRLF — pin them to LF so the
+# hook still works after a checkout on Windows (where autocrlf is on).
+.husky/** text eol=lf
+*.sh text eol=lf
