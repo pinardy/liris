@@ -2,30 +2,36 @@ import { Link } from 'react-router'
 import ComposerAvatar from '../../components/classical/ComposerAvatar'
 import PlayButton from '../../components/common/PlayButton'
 import type { Work } from '../../lib/classical'
-import type { Composer } from '../../lib/composers'
+import type { Choice } from './quiz'
 
 interface Props {
+  question: string
   roundNo: number
   total: number
   score: number
   work: Work
-  choices: Composer[]
-  /** Slug the player picked, or null before they answer. */
+  choices: Choice[]
+  /** The correct choice key. */
+  answer: string
+  /** Key the player picked, or null before they answer. */
   picked: string | null
   clipFailed: boolean
   clipProgress: number
   onReplay: () => void
-  onAnswer: (slug: string) => void
+  onAnswer: (key: string) => void
   onNext: () => void
 }
 
-/** One quiz round: the clip player, four composer choices, and the reveal. */
+/** One quiz round: the clip player, N answer choices, and the reveal. Mode-
+ *  agnostic — a choice renders with a portrait when it carries `avatarSlug`. */
 export default function QuizRound({
+  question,
   roundNo,
   total,
   score,
   work,
   choices,
+  answer,
   picked,
   clipFailed,
   clipProgress,
@@ -33,7 +39,7 @@ export default function QuizRound({
   onAnswer,
   onNext,
 }: Props) {
-  const correctSlug = work.composerSlug!
+  const correctLabel = choices.find((c) => c.key === answer)?.label ?? ''
   return (
     <div className="mx-auto max-w-xl">
       <div className="mb-6 flex items-baseline justify-between">
@@ -51,21 +57,25 @@ export default function QuizRound({
         ) : (
           <div className="flex items-center gap-4">
             <PlayButton onClick={onReplay} aria-label="Replay clip" />
-            <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-700">
-              <div
-                className="h-full rounded-full bg-accent transition-[width] duration-300 ease-linear"
-                style={{ width: `${clipProgress * 100}%` }}
-              />
+            <div className="min-w-0 flex-1">
+              <p className="mb-2 text-sm font-medium text-zinc-300">{question}</p>
+              <div className="h-1.5 overflow-hidden rounded-full bg-zinc-700">
+                <div
+                  className="h-full rounded-full bg-accent transition-[width] duration-300 ease-linear"
+                  style={{ width: `${clipProgress * 100}%` }}
+                />
+              </div>
             </div>
           </div>
         )}
         {picked !== null && (
           <p className="mt-4 text-sm text-zinc-300">
-            {picked === correctSlug ? 'Right — ' : 'It was '}
-            <Link to={`/work/${work.id}`} className="font-semibold hover:underline">
+            {picked === answer ? 'Right — ' : 'It was '}
+            <span className="font-semibold">{correctLabel}</span>.{' '}
+            <Link to={`/work/${work.id}`} className="hover:underline">
               {work.title}
             </Link>{' '}
-            by {work.composerName}.
+            — {work.composerName}.
           </p>
         )}
       </div>
@@ -75,16 +85,16 @@ export default function QuizRound({
           const state =
             picked === null
               ? 'idle'
-              : c.slug === correctSlug
+              : c.key === answer
                 ? 'correct'
-                : c.slug === picked
+                : c.key === picked
                   ? 'wrong'
                   : 'dimmed'
           return (
             <button
-              key={c.slug}
+              key={c.key}
               type="button"
-              onClick={() => onAnswer(c.slug)}
+              onClick={() => onAnswer(c.key)}
               disabled={picked !== null || clipFailed}
               className={`flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
                 state === 'correct'
@@ -96,13 +106,23 @@ export default function QuizRound({
                       : 'border-zinc-700 hover:border-zinc-400'
               }`}
             >
-              <ComposerAvatar slug={c.slug} name={c.surname} className="size-10" width={80} />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold">{c.name}</span>
-                <span className="block text-xs text-zinc-500">
-                  {c.period}
-                  {c.born && ` · ${c.born}–${c.died ?? ''}`}
+              {c.avatarSlug ? (
+                <ComposerAvatar
+                  slug={c.avatarSlug}
+                  name={c.label}
+                  className="size-10"
+                  width={80}
+                />
+              ) : (
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-bold text-zinc-400">
+                  {c.label.slice(0, 2)}
                 </span>
+              )}
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold">{c.label}</span>
+                {c.sublabel && (
+                  <span className="block truncate text-xs text-zinc-500">{c.sublabel}</span>
+                )}
               </span>
             </button>
           )

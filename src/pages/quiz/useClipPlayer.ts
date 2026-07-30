@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePlayerStore } from '../../player/playerStore'
 
-export const CLIP_SEC = 20
-
 /**
  * A self-contained audio element for the quiz's blind clips, kept separate
  * from the real player so the now-playing UI never spoils the answer. Each
  * clip drops in somewhere past the opening (openings are too recognisable),
- * stays muted until the seek lands, plays ~CLIP_SEC seconds, and reports
+ * stays muted until the seek lands, plays for `clipSec` seconds, and reports
  * progress 0→1. `onError` fires only on a genuine media failure — the caller
  * swaps in a spare work.
  */
-export function useClipPlayer(onError: () => void) {
+export function useClipPlayer(onError: () => void, clipSec: number) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const clipStartRef = useRef<number | null>(null)
-  // Listeners bind once but must call the latest handler; refresh it via an
-  // effect rather than mutating a ref during render.
+  // Listeners bind once but must call the latest handler / read the current
+  // clip length; refresh via an effect rather than mutating a ref during render.
   const onErrorRef = useRef(onError)
+  const clipSecRef = useRef(clipSec)
   useEffect(() => {
     onErrorRef.current = onError
+    clipSecRef.current = clipSec
   })
 
   const [progress, setProgress] = useState(0)
@@ -29,9 +29,10 @@ export function useClipPlayer(onError: () => void) {
     audioRef.current = el
 
     el.addEventListener('loadedmetadata', () => {
+      const clip = clipSecRef.current
       const start =
-        Number.isFinite(el.duration) && el.duration > CLIP_SEC * 3
-          ? Math.min(el.duration * 0.3, el.duration - CLIP_SEC - 2)
+        Number.isFinite(el.duration) && el.duration > clip * 3
+          ? Math.min(el.duration * 0.3, el.duration - clip - 2)
           : 0
       clipStartRef.current = start
       if (start > 0) el.currentTime = start
@@ -43,7 +44,7 @@ export function useClipPlayer(onError: () => void) {
     el.addEventListener('timeupdate', () => {
       const start = clipStartRef.current
       if (start === null) return
-      const t = (el.currentTime - start) / CLIP_SEC
+      const t = (el.currentTime - start) / clipSecRef.current
       setProgress(Math.min(1, Math.max(0, t)))
       if (t >= 1 && !el.paused) el.pause()
     })
