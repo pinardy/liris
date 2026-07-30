@@ -30,3 +30,21 @@ export function EmptyState({
     </div>
   )
 }
+
+/**
+ * The loading/error gate for fully-gated pages: a spinner while loading, then
+ * the error if one occurred. Call it once at the top so every such page treats
+ * the two states the same way and in the same order:
+ *   if (loading || error) return <AsyncGate loading={loading} error={error} />
+ */
+export function AsyncGate({
+  loading,
+  error,
+}: {
+  loading: boolean
+  error?: Error | null
+}) {
+  if (loading) return <Spinner />
+  if (error) return <ErrorMessage error={error} />
+  return null
+}

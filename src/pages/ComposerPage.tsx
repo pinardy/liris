@@ -1,10 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useParams } from 'react-router'
-import { Link } from 'react-router'
+import { Link, useParams } from 'react-router'
 import AboutBlurb from '../components/common/AboutBlurb'
+import Button from '../components/common/Button'
+import { chipClass } from '../components/common/Chip'
+import DetailHeader from '../components/common/DetailHeader'
 import { PlayIcon } from '../components/common/icons'
 import StartRadioButton from '../components/common/StartRadioButton'
-import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
+import { AsyncGate, EmptyState } from '../components/common/Status'
 import ComposerAvatar from '../components/classical/ComposerAvatar'
 import WorkRow from '../components/classical/WorkRow'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
@@ -24,8 +26,7 @@ export default function ComposerPage() {
     [slug],
   )
 
-  if (loading) return <Spinner />
-  if (error) return <ErrorMessage error={error} />
+  if (loading || error) return <AsyncGate loading={loading} error={error} />
   const entry = index?.composers.find((c) => c.slug === slug)
   if (!entry) return <EmptyState title="Composer not found" />
 
@@ -42,21 +43,24 @@ export default function ComposerPage() {
 
   return (
     <>
-      <div className="mb-8 flex flex-col items-start gap-5 sm:flex-row sm:items-end">
-        <ComposerAvatar
-          slug={entry.slug}
-          name={entry.composer?.surname ?? entry.name}
-          className="size-40 sm:size-48"
-          width={500}
-        />
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+      <DetailHeader
+        artwork={
+          <ComposerAvatar
+            slug={entry.slug}
+            name={entry.composer?.surname ?? entry.name}
+            className="size-40 sm:size-48"
+            width={500}
+          />
+        }
+        eyebrow={
+          <>
             Composer
             {entry.composer && ` · ${entry.composer.period}`}
-          </p>
-          <h1 className="mt-1 break-words text-3xl font-extrabold md:text-5xl">
-            {entry.name}
-          </h1>
+          </>
+        }
+        title={entry.name}
+        titleClassName="md:text-5xl"
+      >
           {entry.composer && (
             <p className="mt-2 text-sm text-zinc-400">
               {composerLifespan(entry.composer)}
@@ -75,19 +79,16 @@ export default function ComposerPage() {
             )}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
+            <Button
               onClick={() => playQueue(allTracks, 0)}
               disabled={allTracks.length === 0}
-              className="flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-black transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
               <PlayIcon width="16" height="16" />
               Play all
-            </button>
+            </Button>
             <StartRadioButton groups={entry.works.map(workTracks)} />
           </div>
-        </div>
-      </div>
+      </DetailHeader>
 
       {entry.composer && (
         <AboutBlurb
@@ -100,7 +101,7 @@ export default function ComposerPage() {
         <div className="mb-6 flex flex-wrap gap-2">
           <Link
             to={`/period/${entry.composer.period.toLowerCase()}`}
-            className="rounded-full bg-zinc-800 px-4 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700"
+            className={chipClass}
           >
             More {entry.composer.period} works →
           </Link>
@@ -109,7 +110,7 @@ export default function ComposerPage() {
             target="_blank"
             rel="noreferrer"
             title="Public-domain sheet music on IMSLP"
-            className="rounded-full bg-zinc-800 px-4 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700"
+            className={chipClass}
           >
             Scores on IMSLP ↗
           </a>

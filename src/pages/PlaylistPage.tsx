@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
+import Button from '../components/common/Button'
+import DetailHeader from '../components/common/DetailHeader'
 import Modal from '../components/common/Modal'
 import { EmptyState, Spinner } from '../components/common/Status'
 import { PlayIcon, PlaylistIcon } from '../components/common/icons'
@@ -39,51 +41,38 @@ export default function PlaylistPage() {
 
   return (
     <>
-      <div className="mb-8 flex flex-col items-start gap-5 sm:flex-row sm:items-end">
-        <div className="flex size-40 items-center justify-center rounded-lg bg-zinc-800 text-zinc-600 sm:size-48">
-          <PlaylistIcon width="40%" height="40%" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-            Playlist
-          </p>
-          <h1 className="mt-1 break-words text-3xl font-extrabold md:text-4xl">
-            {playlist.name}
-          </h1>
+      <DetailHeader
+        artwork={
+          <div className="flex size-40 items-center justify-center rounded-lg bg-zinc-800 text-zinc-600 sm:size-48">
+            <PlaylistIcon width="40%" height="40%" />
+          </div>
+        }
+        eyebrow="Playlist"
+        title={playlist.name}
+      >
           <p className="mt-2 text-sm text-zinc-400">
             {tracks.length} track{tracks.length === 1 ? '' : 's'}
             {tracks.length > 0 && <>, {formatDuration(totalSec)}</>}
           </p>
           <div className="mt-4 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => playQueue(tracks, 0)}
-              disabled={tracks.length === 0}
-              className="flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-black transition-colors hover:bg-accent-hover disabled:opacity-50"
-            >
+            <Button onClick={() => playQueue(tracks, 0)} disabled={tracks.length === 0}>
               <PlayIcon width="16" height="16" />
               Play
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="subtle"
               onClick={() => {
                 setNewName(playlist.name)
                 setRenaming(true)
               }}
-              className="rounded-full border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
             >
               Rename
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleDelete()}
-              className="rounded-full border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
-            >
+            </Button>
+            <Button variant="subtle" onClick={() => void handleDelete()}>
               Delete
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+      </DetailHeader>
 
       {renaming && (
         <Modal title="Rename playlist" onClose={() => setRenaming(false)}>

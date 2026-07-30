@@ -7,6 +7,7 @@ import {
   isDownloadable,
   removeDownload,
 } from '../../services/db/downloads'
+import { buttonClass } from '../common/buttonStyles'
 
 /**
  * Downloads every movement of a recording for offline listening, with
@@ -65,7 +66,7 @@ export default function DownloadWorkButton({ tracks }: { tracks: Track[] }) {
           ? 'All movements are stored offline — click to remove the downloads'
           : 'Store every movement of this recording for offline listening'
       }
-      className="flex items-center gap-2 rounded-full border border-zinc-600 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:border-white disabled:opacity-70"
+      className={buttonClass('outline')}
     >
       {label}
     </button>

@@ -19,6 +19,13 @@ export async function getFavoriteTracks(): Promise<Track[]> {
   return getTracksByIds(favs.map((f) => f.trackId))
 }
 
+/** Just the favorited track ids, for "is this a favorite?" checks. One live
+ *  query feeds a whole TrackList via context; a work button reuses it too. */
+export async function getFavoriteIds(): Promise<Set<string>> {
+  const rows = await db.favorites.toArray()
+  return new Set(rows.map((r) => r.trackId))
+}
+
 /**
  * Favorite (or unfavorite) a whole set of tracks at once — how a work is
  * hearted: all of its movements together. Adding keeps each track's existing

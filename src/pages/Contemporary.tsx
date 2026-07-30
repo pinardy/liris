@@ -1,3 +1,4 @@
+import Button from '../components/common/Button'
 import PageHeading from '../components/common/PageHeading'
 import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
 import { PlayIcon } from '../components/common/icons'
@@ -25,14 +26,10 @@ export default function Contemporary() {
     <>
       <PageHeading title="Contemporary">
         {tracks && tracks.length > 0 && (
-          <button
-            type="button"
-            onClick={() => playQueue(tracks, 0)}
-            className="flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-accent-hover"
-          >
+          <Button size="sm" onClick={() => playQueue(tracks, 0)}>
             <PlayIcon width="14" height="14" />
             Play all
-          </button>
+          </Button>
         )}
       </PageHeading>
       <p className="mb-6 max-w-2xl text-sm text-zinc-400">

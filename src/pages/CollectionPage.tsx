@@ -1,7 +1,9 @@
 import { Link, useParams } from 'react-router'
 import ArtworkImage from '../components/common/ArtworkImage'
+import Button from '../components/common/Button'
+import DetailHeader from '../components/common/DetailHeader'
 import { PlayIcon } from '../components/common/icons'
-import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
+import { AsyncGate, EmptyState } from '../components/common/Status'
 import WorkRow from '../components/classical/WorkRow'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { usePlayerStore } from '../player/playerStore'
@@ -15,8 +17,7 @@ export default function CollectionPage() {
 
   const collection = classicalCollections.find((c) => c.itemId === itemId)
   if (!collection) return <EmptyState title="Collection not found" />
-  if (loading) return <Spinner />
-  if (error) return <ErrorMessage error={error} />
+  if (loading || error) return <AsyncGate loading={loading} error={error} />
 
   const works = (index?.works ?? []).filter((w) =>
     w.recordings.some((r) => r.collectionId === collection.itemId),
@@ -29,19 +30,17 @@ export default function CollectionPage() {
 
   return (
     <>
-      <div className="mb-8 flex flex-col items-start gap-5 sm:flex-row sm:items-end">
-        <ArtworkImage
-          src={archiveThumbnail(collection.itemId)}
-          className="size-40 sm:size-48"
-          rounded="rounded-lg"
-        />
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-            Collection
-          </p>
-          <h1 className="mt-1 break-words text-3xl font-extrabold md:text-4xl">
-            {collection.name}
-          </h1>
+      <DetailHeader
+        artwork={
+          <ArtworkImage
+            src={archiveThumbnail(collection.itemId)}
+            className="size-40 sm:size-48"
+            rounded="rounded-lg"
+          />
+        }
+        eyebrow="Collection"
+        title={collection.name}
+      >
           <p className="mt-2 max-w-2xl text-sm text-zinc-400">{collection.description}</p>
           <p className="mt-1 text-sm text-zinc-400">
             {collection.artist} · {works.length} works · {tracks.length} movements
@@ -57,17 +56,15 @@ export default function CollectionPage() {
               archive.org
             </a>
           </p>
-          <button
-            type="button"
+          <Button
             onClick={() => playQueue(tracks, 0)}
             disabled={tracks.length === 0}
-            className="mt-4 flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-black transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="mt-4"
           >
             <PlayIcon width="16" height="16" />
             Play
-          </button>
-        </div>
-      </div>
+          </Button>
+      </DetailHeader>
 
       {collection.license === 'Unverified' && (
         <div className="mb-6 rounded-lg border border-amber-900/50 bg-amber-950/30 p-3 text-xs text-amber-300">

@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router'
+import Button from '../components/common/Button'
 import PageHeading from '../components/common/PageHeading'
 import ArtworkImage from '../components/common/ArtworkImage'
 import { EmptyState, Spinner } from '../components/common/Status'
@@ -101,21 +102,13 @@ export default function Downloads() {
       <PageHeading title="Downloads">
         {entries.length > 0 && (
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => playQueue(tracks, 0)}
-              className="flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-bold text-black transition-colors hover:bg-accent-hover"
-            >
+            <Button size="sm" onClick={() => playQueue(tracks, 0)}>
               <PlayIcon width="14" height="14" />
               Play all
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleRemoveAll()}
-              className="rounded-full border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
-            >
+            </Button>
+            <Button variant="subtle" size="sm" onClick={() => void handleRemoveAll()}>
               Remove all
-            </button>
+            </Button>
           </div>
         )}
       </PageHeading>

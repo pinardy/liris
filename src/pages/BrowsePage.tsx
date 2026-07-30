@@ -1,8 +1,9 @@
 import { useParams } from 'react-router'
 import { PlayIcon } from '../components/common/icons'
 import AboutBlurb from '../components/common/AboutBlurb'
+import Button from '../components/common/Button'
 import StartRadioButton from '../components/common/StartRadioButton'
-import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
+import { AsyncGate, EmptyState } from '../components/common/Status'
 import WorkRow from '../components/classical/WorkRow'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { formBySlug, workTracks, type Work } from '../lib/classical'
@@ -26,8 +27,7 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
   const { data: index, error, loading } = useClassicalIndex()
   const playQueue = usePlayerStore((s) => s.playQueue)
 
-  if (loading) return <Spinner />
-  if (error) return <ErrorMessage error={error} />
+  if (loading || error) return <AsyncGate loading={loading} error={error} />
   if (!index || !slug) return <EmptyState title="Catalog unavailable" />
 
   let title = ''
@@ -77,15 +77,10 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
           {works.length} {works.length === 1 ? 'work' : 'works'}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => playQueue(allTracks, 0)}
-            disabled={allTracks.length === 0}
-            className="flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-black transition-colors hover:bg-accent-hover disabled:opacity-50"
-          >
+          <Button onClick={() => playQueue(allTracks, 0)} disabled={allTracks.length === 0}>
             <PlayIcon width="16" height="16" />
             Play all
-          </button>
+          </Button>
           <StartRadioButton groups={works.map(workTracks)} />
         </div>
       </div>

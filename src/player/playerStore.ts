@@ -89,6 +89,14 @@ export interface PlayerState {
   checkSleepTimer: () => void
 }
 
+/** Fire-and-forget: record a play into recently-played, lazily so Dexie stays
+ *  off the hot path and never blocks (or breaks) playback. */
+function recordPlayLazy(track: Track) {
+  void import('../services/db/recents').then(({ recordPlay }) =>
+    recordPlay(track).catch(() => {}),
+  )
+}
+
 let sleepTimeout: ReturnType<typeof setTimeout> | null = null
 
 /** The sleep timer's final seconds ramp the volume down instead of cutting
@@ -102,10 +110,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     if (!track) return
     set({ currentIndex: index, positionSec: 0, durationSec: track.durationSec })
     engine.loadAndPlay(track)
-    // Fire-and-forget: record into recently played (lazy so Dexie stays off the hot path).
-    void import('../services/db/recents').then(({ recordPlay }) =>
-      recordPlay(track).catch(() => {}),
-    )
+    recordPlayLazy(track)
+  }
+
+  /** Keep the pre-shuffle `originalQueue` in step with a queue mutation, so
+   *  turning shuffle off later restores an order that includes the change.
+   *  No-op when shuffle is off (there's no mirror to maintain). */
+  function updateOriginalQueue(update: (original: Track[]) => Track[]) {
+    const { originalQueue } = get()
+    if (originalQueue) set({ originalQueue: update(originalQueue) })
   }
 
   return {
@@ -154,9 +167,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       void engine.loadAndPlay(track).then(() => {
         if (positionSec > 1) engine.seek(positionSec)
       })
-      void import('../services/db/recents').then(({ recordPlay }) =>
-        recordPlay(track).catch(() => {}),
-      )
+      recordPlayLazy(track)
     },
 
     startRadio: (groups) => {
@@ -270,14 +281,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       newQueue.splice(currentIndex + 1, 0, track)
       set({ queue: newQueue })
       // Keep the un-shuffled order in sync so un-shuffle doesn't lose it.
-      const { originalQueue } = get()
-      if (originalQueue) {
-        const current = queue[currentIndex]
-        const idx = current ? originalQueue.findIndex((t) => t.id === current.id) : -1
-        const newOriginal = [...originalQueue]
-        newOriginal.splice(idx + 1, 0, track)
-        set({ originalQueue: newOriginal })
-      }
+      const current = queue[currentIndex]
+      updateOriginalQueue((original) => {
+        const idx = current ? original.findIndex((t) => t.id === current.id) : -1
+        const next = [...original]
+        next.splice(idx + 1, 0, track)
+        return next
+      })
     },
 
     addToQueue: (track) => {
@@ -288,20 +298,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       }
       set({ queue: [...queue, track] })
       // Keep the un-shuffled order in sync so un-shuffle doesn't lose the addition.
-      const { originalQueue } = get()
-      if (originalQueue) set({ originalQueue: [...originalQueue, track] })
+      updateOriginalQueue((original) => [...original, track])
     },
 
     removeFromQueue: (index) => {
-      const { queue, currentIndex, originalQueue, isPlaying } = get()
+      const { queue, currentIndex, isPlaying } = get()
       const removed = queue[index]
       if (!removed) return
       const newQueue = queue.filter((_, i) => i !== index)
       // Keep the un-shuffled order in sync (drop one occurrence of this track).
-      if (originalQueue) {
-        const oi = originalQueue.findIndex((t) => t.id === removed.id)
-        if (oi >= 0) set({ originalQueue: originalQueue.filter((_, i) => i !== oi) })
-      }
+      updateOriginalQueue((original) => {
+        const oi = original.findIndex((t) => t.id === removed.id)
+        return oi >= 0 ? original.filter((_, i) => i !== oi) : original
+      })
       if (index !== currentIndex) {
         set({
           queue: newQueue,

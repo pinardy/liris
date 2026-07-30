@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../../services/db/db'
 import { getDownloadedIds } from '../../services/db/downloads'
+import { getFavoriteIds } from '../../services/db/favorites'
 import type { Track } from '../../types/model'
 import { GripIcon } from '../common/icons'
 import { DownloadedIdsContext, FavoriteIdsContext } from './favoritesContext'
@@ -26,10 +26,7 @@ export default function TrackList({
   renderActions = defaultActions,
   onReorder,
 }: Props) {
-  const favoriteIds = useLiveQuery(
-    () => db.favorites.toArray().then((rows) => new Set(rows.map((r) => r.trackId))),
-    [],
-  )
+  const favoriteIds = useLiveQuery(getFavoriteIds, [])
   const downloadedIds = useLiveQuery(getDownloadedIds, [])
 
   // Same pointer-event drag as the queue panel, so it works on touch.

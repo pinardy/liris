@@ -12,6 +12,7 @@ import {
   resetGains,
   setBandGain,
 } from '../../player/audioFx'
+import Button from '../common/Button'
 import { SlidersIcon } from '../common/icons'
 
 function Visualizer() {
@@ -123,14 +124,14 @@ export default function EqualizerPanel() {
                   Shape the sound with a 5-band equalizer and live spectrum
                   visualizer.
                 </p>
-                <button
-                  type="button"
+                <Button
+                  size="sm"
                   onClick={() => void handleEnable()}
                   disabled={enabling}
-                  className="w-full rounded-full bg-accent px-4 py-2 text-sm font-bold text-black transition-colors hover:bg-accent-hover disabled:opacity-50"
+                  className="w-full"
                 >
                   {enabling ? 'Enabling…' : 'Enable equalizer'}
-                </button>
+                </Button>
               </>
             ) : (
               <>

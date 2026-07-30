@@ -1,6 +1,8 @@
 import { Link } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import ArtworkImage from '../components/common/ArtworkImage'
+import ChipSection from '../components/common/Chip'
+import PlayButton from '../components/common/PlayButton'
 import { ErrorMessage, Spinner } from '../components/common/Status'
 import { PlayIcon } from '../components/common/icons'
 import ComposerAvatar from '../components/classical/ComposerAvatar'
@@ -93,14 +95,10 @@ export default function Home() {
                 {' '}— rebuilt every day from your listening.
               </p>
             </div>
-            <button
-              type="button"
+            <PlayButton
               onClick={() => startRadio(mixWorks.map(workTracks))}
               aria-label="Play your daily mix"
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform hover:scale-105"
-            >
-              <PlayIcon width="18" height="18" className="translate-x-px" />
-            </button>
+            />
           </div>
         </section>
       )}
@@ -176,43 +174,37 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="mb-10">
-            <h2 className="mb-3 text-lg font-bold">Forms</h2>
-            <div className="flex flex-wrap gap-2">
-              {availableForms.map((f) => (
-                <Link
-                  key={f.slug}
-                  to={`/form/${f.slug}`}
-                  className="rounded-full bg-zinc-800 px-4 py-1.5 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
-                >
+          <ChipSection
+            title="Forms"
+            items={availableForms.map((f) => ({
+              key: f.slug,
+              to: `/form/${f.slug}`,
+              label: (
+                <>
                   {f.label}
                   <span className="ml-1.5 text-xs text-zinc-500">
                     {index.byForm.get(f.slug)?.length}
                   </span>
-                </Link>
-              ))}
-            </div>
-          </section>
+                </>
+              ),
+            }))}
+          />
 
-          {availableInstruments.length > 0 && (
-            <section className="mb-10">
-              <h2 className="mb-3 text-lg font-bold">Instruments</h2>
-              <div className="flex flex-wrap gap-2">
-                {availableInstruments.map((i) => (
-                  <Link
-                    key={i.slug}
-                    to={`/instrument/${i.slug}`}
-                    className="rounded-full bg-zinc-800 px-4 py-1.5 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
-                  >
-                    {i.label}
-                    <span className="ml-1.5 text-xs text-zinc-500">
-                      {index.byInstrument.get(i.slug)?.length}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
+          <ChipSection
+            title="Instruments"
+            items={availableInstruments.map((i) => ({
+              key: i.slug,
+              to: `/instrument/${i.slug}`,
+              label: (
+                <>
+                  {i.label}
+                  <span className="ml-1.5 text-xs text-zinc-500">
+                    {index.byInstrument.get(i.slug)?.length}
+                  </span>
+                </>
+              ),
+            }))}
+          />
 
           <section className="mb-10">
             <Link
@@ -227,9 +219,7 @@ export default function Home() {
                   Ten blind clips from the catalog. How good is your ear?
                 </span>
               </span>
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform group-hover:scale-105">
-                <PlayIcon width="18" height="18" className="translate-x-px" />
-              </span>
+              <PlayButton decorative />
             </Link>
           </section>
 
@@ -242,27 +232,23 @@ export default function Home() {
             </div>
           </section>
 
-          {index.performers.length > 0 && (
-            <section className="mb-10">
-              <h2 className="mb-3 text-lg font-bold">Performers</h2>
-              <div className="flex flex-wrap gap-2">
-                {index.performers.map((p) => (
-                  <Link
-                    key={p.slug}
-                    to={`/performer/${p.slug}`}
-                    title={roleLabels[p.role]}
-                    className="rounded-full bg-zinc-800 px-4 py-1.5 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
-                  >
-                    {p.name}
-                    <span className="ml-1.5 text-xs text-zinc-500">
-                      {p.role !== 'artist' && `${roleLabels[p.role]} · `}
-                      {p.works.length}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
+          <ChipSection
+            title="Performers"
+            items={index.performers.map((p) => ({
+              key: p.slug,
+              to: `/performer/${p.slug}`,
+              title: roleLabels[p.role],
+              label: (
+                <>
+                  {p.name}
+                  <span className="ml-1.5 text-xs text-zinc-500">
+                    {p.role !== 'artist' && `${roleLabels[p.role]} · `}
+                    {p.works.length}
+                  </span>
+                </>
+              ),
+            }))}
+          />
         </>
       )}
 

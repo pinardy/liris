@@ -22,6 +22,11 @@ import { resolvePlayableUrl } from './resolveSource'
 
 const FX_ENABLED_KEY = 'audio-fx-enabled'
 
+/** Whether the equalizer/FX graph is switched on (persisted flag). */
+function fxEnabled(): boolean {
+  return localStorage.getItem(FX_ENABLED_KEY) === '1'
+}
+
 function isRadioTrack(track: Track): boolean {
   return track.id.startsWith('radio:')
 }
@@ -35,7 +40,7 @@ function createElement(): HTMLAudioElement {
 
 const audio = createElement()
 const audioAlt = createElement()
-if (localStorage.getItem(FX_ENABLED_KEY) === '1') {
+if (fxEnabled()) {
   audio.crossOrigin = 'anonymous'
   audioAlt.crossOrigin = 'anonymous'
 }
@@ -127,7 +132,7 @@ async function attemptPlay(load: NonNullable<typeof currentLoad>) {
   if (!radio) mainActive = el
   // Equalizer graph must exist before play; created here so the AudioContext
   // is born inside a user-gesture call stack.
-  if (!radio && localStorage.getItem(FX_ENABLED_KEY) === '1') {
+  if (!radio && fxEnabled()) {
     const fx = await import('./audioFx')
     fx.ensureGraph(audio, audioAlt)
     fx.resumeContext()
@@ -231,7 +236,7 @@ export function loadedTrackId(): string | null {
 }
 
 export function play(): void {
-  if (localStorage.getItem(FX_ENABLED_KEY) === '1' && active !== radioAudio) {
+  if (fxEnabled() && active !== radioAudio) {
     void import('./audioFx').then((fx) => fx.resumeContext())
   }
   active.play().catch(() => usePlayerStore.setState({ isPlaying: false }))
@@ -336,7 +341,7 @@ if (typeof document !== 'undefined') {
     usePlayerStore.getState().checkSleepTimer()
     // Mobile browsers suspend AudioContexts when backgrounded; bring ours back
     // so the equalizer keeps working after a return to the app.
-    if (localStorage.getItem(FX_ENABLED_KEY) === '1' && active !== radioAudio) {
+    if (fxEnabled() && active !== radioAudio) {
       void import('./audioFx').then((fx) => fx.resumeContext())
     }
   })

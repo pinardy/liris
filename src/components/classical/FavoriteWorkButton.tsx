@@ -1,7 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Track } from '../../types/model'
-import { db } from '../../services/db/db'
-import { setFavorites } from '../../services/db/favorites'
+import { getFavoriteIds, setFavorites } from '../../services/db/favorites'
 import { HeartIcon } from '../common/icons'
 
 /**
@@ -9,10 +8,7 @@ import { HeartIcon } from '../common/icons'
  * is a favorite; toggling favorites/unfavorites all of them together.
  */
 export default function FavoriteWorkButton({ tracks }: { tracks: Track[] }) {
-  const favoriteIds = useLiveQuery(
-    () => db.favorites.toArray().then((rows) => new Set(rows.map((r) => r.trackId))),
-    [],
-  )
+  const favoriteIds = useLiveQuery(getFavoriteIds, [])
   if (tracks.length === 0) return null
 
   const allFavorite =
