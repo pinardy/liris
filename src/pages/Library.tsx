@@ -113,9 +113,12 @@ export default function Library() {
         </div>
       </PageHeading>
 
-      <p className="mb-4 text-sm">
+      <p className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
         <Link to="/downloads" className="text-zinc-400 underline-offset-2 hover:text-white hover:underline">
           Manage offline downloads →
+        </Link>
+        <Link to="/settings" className="text-zinc-400 underline-offset-2 hover:text-white hover:underline">
+          Settings →
         </Link>
       </p>
 

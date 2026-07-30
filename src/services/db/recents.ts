@@ -6,6 +6,15 @@ const MAX_RECENTS = 50
 /** Years of listening at heavy use; a full-table scan of this stays instant. */
 const MAX_PLAYS = 20_000
 
+/** Wipe play history and the stats built from it (playlists/favorites are
+ *  untouched). Used by the Settings "clear listening history" action. */
+export async function clearListeningData(): Promise<void> {
+  await db.transaction('rw', [db.recentlyPlayed, db.plays], async () => {
+    await db.recentlyPlayed.clear()
+    await db.plays.clear()
+  })
+}
+
 export async function recordPlay(track: Track): Promise<void> {
   // Live radio streams have session-ish URLs and no fixed content — don't record.
   if (track.id.startsWith('radio:')) return

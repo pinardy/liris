@@ -27,6 +27,7 @@ import WorkPage from './pages/WorkPage'
 import BrowsePage from './pages/BrowsePage'
 import CollectionPage from './pages/CollectionPage'
 import Contemporary from './pages/Contemporary'
+import Settings from './pages/Settings'
 
 function App() {
   const [helpOpen, setHelpOpen] = useState(false)
@@ -62,6 +63,7 @@ function App() {
             <Route path="/playlists/:id" element={<PlaylistPage />} />
             <Route path="/smart/:id" element={<SmartPlaylistPage />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
       </div>

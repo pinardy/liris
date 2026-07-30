@@ -79,6 +79,16 @@ export default function Sidebar() {
           >
             Contemporary →
           </NavLink>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `px-3 text-xs font-medium transition-colors ${
+                isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+              }`
+            }
+          >
+            Settings
+          </NavLink>
         </div>
       </nav>
     </aside>
