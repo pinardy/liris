@@ -21,10 +21,23 @@ import { resolvePlayableUrl } from './resolveSource'
  */
 
 const FX_ENABLED_KEY = 'audio-fx-enabled'
+const CROSSFADE_KEY = 'player-crossfade'
+const CROSSFADE_MAX = 12
 
 /** Whether the equalizer/FX graph is switched on (persisted flag). */
 function fxEnabled(): boolean {
   return localStorage.getItem(FX_ENABLED_KEY) === '1'
+}
+
+/** Crossfade duration in seconds (0 = off), clamped to a sane range. */
+export function crossfadeSec(): number {
+  const raw = Number(localStorage.getItem(CROSSFADE_KEY))
+  return Number.isFinite(raw) ? Math.min(CROSSFADE_MAX, Math.max(0, raw)) : 0
+}
+
+export function setCrossfadeSec(secs: number): void {
+  const clamped = Math.min(CROSSFADE_MAX, Math.max(0, Math.round(secs)))
+  localStorage.setItem(CROSSFADE_KEY, String(clamped))
 }
 
 function isRadioTrack(track: Track): boolean {
@@ -48,6 +61,14 @@ let radioAudio: HTMLAudioElement | null = null
 let active = audio
 /** Whichever of the two main elements owns the current (non-radio) track. */
 let mainActive = audio
+
+// ---- crossfade state (see maybeCrossfade / startCrossfade) ----
+/** True while two elements overlap during a crossfade; volume ramps own the
+ *  element volumes for its duration, and re-entry is blocked. */
+let crossfading = false
+/** The element fading out during a crossfade, so pause/skip can stop it. */
+let crossfadeOutgoing: HTMLAudioElement | null = null
+let crossfadeOutgoingObjectUrl: string | null = null
 
 function getRadioElement(): HTMLAudioElement {
   if (!radioAudio) radioAudio = createElement()
@@ -170,6 +191,9 @@ function releaseObjectUrl() {
 }
 
 export async function loadAndPlay(track: Track): Promise<void> {
+  // Any explicit load (manual skip, new play) supersedes an in-flight
+  // crossfade — stop the outgoing element before taking over.
+  finishCrossfade()
   const token = ++loadToken
 
   // Gapless path: the standby element already buffered this exact track, so
@@ -244,6 +268,9 @@ export function play(): void {
 
 export function pause(): void {
   active.pause()
+  // A pause mid-crossfade must silence the outgoing element too, then abandon
+  // the crossfade so a later resume plays only the current track.
+  if (crossfading) finishCrossfade()
 }
 
 export function seek(sec: number): void {
@@ -260,6 +287,9 @@ export function seek(sec: number): void {
 let sleepFade = 1
 
 export function setVolume(volume: number, muted: boolean): void {
+  // While crossfading, the ramps own each element's volume; syncing to the
+  // user level here would jump both elements. applyVolume re-syncs when done.
+  if (crossfading) return
   for (const el of [audio, audioAlt, radioAudio]) {
     if (!el) continue
     el.volume = volume * sleepFade
@@ -332,6 +362,124 @@ async function preloadNext() {
   }
 }
 
+// ---- crossfade across works (opt-in) ----
+
+/**
+ * Near the end of a non-radio track, if crossfade is enabled and the next
+ * track belongs to a DIFFERENT work, overlap the already-buffered standby
+ * element and ramp between them. Movements within one work stay gapless.
+ * Any failed precondition falls back to the ordinary end-of-track advance.
+ */
+function maybeCrossfade() {
+  if (crossfading || active === radioAudio) return
+  const secs = crossfadeSec()
+  if (secs <= 0 || !Number.isFinite(active.duration)) return
+  const remaining = active.duration - active.currentTime
+  if (remaining <= 0 || remaining > secs) return
+  const s = usePlayerStore.getState()
+  if (s.repeat === 'one') return
+  const idx = nextIndex(s.queue.length, s.currentIndex, s.repeat, true)
+  if (idx === null || idx === s.currentIndex) return
+  const current = s.queue[s.currentIndex]
+  const next = s.queue[idx]
+  if (!current || !next || isRadioTrack(next)) return
+  // Movement-to-movement within one work must stay gapless, not crossfade.
+  if (isSameWork(current, next)) return
+  // Only when the next track is already buffered on the standby element;
+  // otherwise let the ordinary advance resolve and load it.
+  if (!standby || standby.track.id !== next.id) return
+  startCrossfade(secs, idx)
+}
+
+function startCrossfade(secs: number, nextIdx: number) {
+  const buffered = standby
+  if (!buffered) return
+  const outgoing = active
+  const el = standbyElement()
+
+  // Take over the standby buffer as the new active element.
+  crossfadeOutgoing = outgoing
+  crossfadeOutgoingObjectUrl = currentObjectUrl
+  currentObjectUrl = buffered.isObjectUrl ? buffered.url : null
+  standby = null
+  preloadToken++
+  crossfading = true
+
+  const token = ++loadToken
+  active = el
+  mainActive = el
+  currentLoad = {
+    token,
+    track: buffered.track,
+    url: buffered.url,
+    retried: false,
+    handled: false,
+    preloadedEl: el,
+  }
+
+  if (fxEnabled()) {
+    void import('./audioFx').then((fx) => {
+      fx.ensureGraph(audio, audioAlt)
+      fx.resumeContext()
+    })
+  }
+
+  const { volume, muted } = usePlayerStore.getState()
+  const target = muted ? 0 : volume * sleepFade
+  el.currentTime = 0
+  el.muted = false
+  el.volume = 0
+  void el
+    .play()
+    .then(() => void updateMediaSession(buffered.track))
+    .catch(() => {})
+
+  // Show the new track immediately, without re-loading it in the engine.
+  usePlayerStore.getState().crossfadeAdvance(nextIdx)
+
+  rampVolume(el, 0, target, secs)
+  rampVolume(outgoing, outgoing.volume, 0, secs, finishCrossfade)
+  // rAF ramps freeze when the tab is hidden, so guarantee cleanup regardless.
+  setTimeout(finishCrossfade, secs * 1000 + 300)
+}
+
+/** End a crossfade: stop the outgoing element and re-sync volume. Idempotent. */
+function finishCrossfade() {
+  if (!crossfading) return
+  crossfading = false
+  const out = crossfadeOutgoing
+  crossfadeOutgoing = null
+  if (out && out !== active) {
+    out.pause()
+    out.removeAttribute('src')
+    out.load()
+  }
+  if (crossfadeOutgoingObjectUrl) {
+    URL.revokeObjectURL(crossfadeOutgoingObjectUrl)
+    crossfadeOutgoingObjectUrl = null
+  }
+  applyVolume()
+}
+
+/** Linearly ramp an element's volume from `from` to `to` over `secs`, via rAF. */
+function rampVolume(
+  el: HTMLAudioElement,
+  from: number,
+  to: number,
+  secs: number,
+  onDone?: () => void,
+) {
+  const startMs = performance.now()
+  const durMs = Math.max(1, secs * 1000)
+  function step(now: number) {
+    const t = Math.min(1, (now - startMs) / durMs)
+    el.volume = Math.min(1, Math.max(0, from + (to - from) * t))
+    if (t < 1) requestAnimationFrame(step)
+    else onDone?.()
+  }
+  requestAnimationFrame(step)
+}
+
 // ---- returning to the foreground ----
 
 if (typeof document !== 'undefined') {
@@ -376,6 +524,8 @@ function wire(el: HTMLAudioElement) {
     // Media events keep firing while backgrounded even when timers are
     // throttled, so this is the reliable sleep-timer heartbeat on mobile.
     usePlayerStore.getState().checkSleepTimer()
+    // Checked every tick (not throttled) so the fade starts on time near the end.
+    maybeCrossfade()
     // Throttle to ~2 writes/sec; only SeekBar subscribes to positionSec.
     const now = performance.now()
     if (now - lastTimeWrite < 450) return

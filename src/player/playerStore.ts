@@ -71,6 +71,12 @@ export interface PlayerState {
   /** Empty the queue and stop playback. */
   clearQueue: () => void
   playFromQueue: (index: number) => void
+  /**
+   * Advance to `index` when the audio engine has ALREADY started that track
+   * (during a crossfade the standby element is overlapping the outgoing one).
+   * Updates the visible track + recents without re-loading audio.
+   */
+  crossfadeAdvance: (index: number) => void
   moveInQueue: (from: number, to: number) => void
   /**
    * Apply a persisted session on boot: the queue and position come back
@@ -348,6 +354,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     playFromQueue: (index) => startTrack(index),
+
+    crossfadeAdvance: (index) => {
+      const track = get().queue[index]
+      if (!track) return
+      set({ currentIndex: index, positionSec: 0, durationSec: track.durationSec })
+      recordPlayLazy(track)
+    },
 
     restoreSession: (saved) => {
       const { queue, currentIndex } = get()

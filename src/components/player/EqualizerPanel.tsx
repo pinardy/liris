@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
+import { crossfadeSec, setCrossfadeSec } from '../../player/audioEngine'
 import { isIOS } from '../../lib/platform'
 import {
   EQ_BAND_LABELS,
@@ -62,6 +63,12 @@ export default function EqualizerPanel() {
   const [enabled, setEnabled] = useState(isFxEnabled)
   const [gains, setGains] = useState(loadGains)
   const [enabling, setEnabling] = useState(false)
+  const [crossfade, setCrossfade] = useState(crossfadeSec)
+
+  function handleCrossfade(secs: number) {
+    setCrossfade(secs)
+    setCrossfadeSec(secs)
+  }
 
   async function handleEnable() {
     setEnabling(true)
@@ -106,6 +113,33 @@ export default function EqualizerPanel() {
             onClick={() => setOpen(false)}
           />
           <div className="absolute bottom-full right-0 z-40 mb-2 w-72 rounded-md border border-zinc-700 bg-zinc-800 p-4 shadow-xl">
+            <div className="mb-4">
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                  Crossfade
+                </p>
+                <span className="text-[11px] tabular-nums text-zinc-400">
+                  {crossfade === 0 ? 'Off' : `${crossfade}s`}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={12}
+                step={3}
+                value={crossfade}
+                aria-label="Crossfade seconds"
+                onChange={(e) => handleCrossfade(Number(e.target.value))}
+                className="h-1 w-full cursor-pointer appearance-none rounded-full bg-zinc-600 accent-accent"
+              />
+              <p className="mt-1 text-[11px] leading-snug text-zinc-500">
+                Blends tracks from different works; movements of one work stay
+                gapless.
+              </p>
+            </div>
+
+            <div className="mb-3 border-t border-zinc-700" />
+
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
               Equalizer
             </p>
