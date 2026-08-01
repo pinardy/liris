@@ -4,6 +4,7 @@ import { usePlayerStore } from '../../player/playerStore'
 import {
   downloadTrack,
   isDownloadable,
+  isQuotaError,
   removeDownload,
 } from '../../services/db/downloads'
 import { toggleFavorite } from '../../services/db/favorites'
@@ -44,7 +45,11 @@ export default function TrackActions({
       toast('Downloaded for offline listening')
     } catch (err) {
       console.error('Download failed', err)
-      toast('Download failed — try again')
+      toast(
+        isQuotaError(err)
+          ? 'Storage is full — remove downloads in Your Library first'
+          : 'Download failed — try again',
+      )
     } finally {
       setDownloading(false)
     }

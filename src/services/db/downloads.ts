@@ -37,6 +37,11 @@ export async function removeDownload(trackId: string): Promise<void> {
   await db.files.delete(downloadKey(trackId))
 }
 
+/** Storage full? Retrying is pointless until space is freed — say so. */
+export function isQuotaError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === 'QuotaExceededError'
+}
+
 /** Ids of all downloaded tracks — keys only, never deserializes the blobs. */
 export async function getDownloadedIds(): Promise<Set<string>> {
   const keys = await db.files.where('key').startsWith(KEY_PREFIX).primaryKeys()

@@ -327,7 +327,14 @@ export function getClassicalIndex(): Promise<ClassicalIndex> {
             if (works.length > 0) return saveCachedCatalog({ works, failed })
           })
           .catch(() => {})
-        return buildIndex(cached.works, cached.failed)
+        try {
+          return buildIndex(cached.works, cached.failed)
+        } catch (err) {
+          // A cached catalog written by an older app version can have a shape
+          // this code no longer expects. Never let stale data brick a fresh
+          // deploy — drop it and load from the network instead.
+          console.error('Cached catalog is unusable, refetching', err)
+        }
       }
       const { works, failed } = await fetchWorks()
       if (works.length > 0) void saveCachedCatalog({ works, failed })

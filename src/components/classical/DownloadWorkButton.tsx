@@ -5,8 +5,10 @@ import {
   downloadTrack,
   getDownloadedIds,
   isDownloadable,
+  isQuotaError,
   removeDownload,
 } from '../../services/db/downloads'
+import { toast } from '../../lib/toast'
 import { buttonClass } from '../common/buttonStyles'
 
 /**
@@ -42,6 +44,12 @@ export default function DownloadWorkButton({ tracks }: { tracks: Track[] }) {
       } catch (err) {
         console.error('Movement download failed', err)
         failed++
+        // Storage full: the remaining movements can only fail the same way.
+        if (isQuotaError(err)) {
+          toast('Storage is full — remove downloads in Your Library first')
+          failed += missing.length - 1 - i
+          break
+        }
       }
     }
     setFailures(failed)
