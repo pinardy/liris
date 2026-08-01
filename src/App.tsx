@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { Routes, Route } from 'react-router'
+import { Link, Routes, Route, useLocation } from 'react-router'
+import ErrorBoundary from './components/common/ErrorBoundary'
 import ShortcutsHelp from './components/common/ShortcutsHelp'
 import Toaster from './components/common/Toaster'
 import Sidebar from './components/layout/Sidebar'
@@ -29,17 +30,49 @@ import CollectionPage from './pages/CollectionPage'
 import Contemporary from './pages/Contemporary'
 import Settings from './pages/Settings'
 
+/** Shown in place of a page that threw; playback keeps running underneath. */
+function PageErrorFallback(reset: () => void) {
+  return (
+    <div className="mx-auto max-w-md py-16 text-center">
+      <h1 className="text-xl font-bold">This page hit a bug</h1>
+      <p className="mt-2 text-sm text-zinc-400">
+        The music keeps playing — the rest of the app is fine. You can retry
+        this page or head somewhere else.
+      </p>
+      <div className="mt-6 flex justify-center gap-3">
+        <button
+          type="button"
+          onClick={reset}
+          className="rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-black transition-colors hover:bg-accent-hover"
+        >
+          Try again
+        </button>
+        <Link
+          to="/"
+          className="rounded-full border border-zinc-600 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:border-white"
+        >
+          Go Home
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [helpOpen, setHelpOpen] = useState(false)
   const toggleHelp = useCallback(() => setHelpOpen((o) => !o), [])
   useKeyboardShortcuts(toggleHelp)
   const mainRef = useRef<HTMLElement>(null)
+  const location = useLocation()
   return (
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1">
         <Sidebar />
         <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto px-4 py-6 md:px-8">
           <ScrollMemory container={mainRef} />
+          {/* Keyed by location so navigating away from a crashed page always
+              gets a fresh boundary — the Go Home link works with no reset. */}
+          <ErrorBoundary key={location.key} fallback={PageErrorFallback}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
@@ -65,6 +98,7 @@ function App() {
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
+          </ErrorBoundary>
         </main>
       </div>
       <PlayerBar />
