@@ -164,7 +164,7 @@ export default function QueuePanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-zinc-800 bg-zinc-950 shadow-2xl">
+    <div className="pt-safe pb-safe fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-zinc-800 bg-zinc-950 shadow-2xl">
       <div className="border-b border-zinc-800 p-4">
         <div className="flex items-center justify-between">
           <div>

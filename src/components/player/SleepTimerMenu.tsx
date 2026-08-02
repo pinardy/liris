@@ -32,7 +32,7 @@ export default function SleepTimerMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-label="Sleep timer"
         aria-expanded={open}
-        className={active ? 'text-accent' : 'text-zinc-400 hover:text-white'}
+        className={`flex size-11 items-center justify-center ${active ? 'text-accent' : 'text-zinc-400 hover:text-white'}`}
       >
         <MoonIcon width="18" height="18" />
       </button>

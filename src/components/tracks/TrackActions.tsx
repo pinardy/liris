@@ -62,11 +62,11 @@ export default function TrackActions({
         onClick={() => void toggleFavorite(track)}
         aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         aria-pressed={Boolean(isFavorite)}
-        className={
+        className={`flex size-11 items-center justify-center md:size-8 ${
           isFavorite
             ? 'text-accent'
             : 'text-zinc-500 hover:text-white md:invisible md:group-hover:visible'
-        }
+        }`}
       >
         <HeartIcon width="16" height="16" fill={isFavorite ? 'currentColor' : 'none'} />
       </button>
@@ -76,7 +76,7 @@ export default function TrackActions({
         onClick={() => setMenuOpen((o) => !o)}
         aria-label="More options"
         aria-expanded={menuOpen}
-        className="text-zinc-500 hover:text-white md:invisible md:group-hover:visible"
+        className="flex size-11 items-center justify-center text-zinc-500 hover:text-white md:size-8 md:invisible md:group-hover:visible"
       >
         <DotsIcon width="18" height="18" />
       </button>
@@ -158,7 +158,7 @@ function MenuItem({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="block w-full px-3 py-1.5 text-left text-sm text-zinc-200 hover:bg-zinc-700"
+      className="block w-full px-3 py-2.5 text-left text-sm text-zinc-200 hover:bg-zinc-700"
     >
       {label}
     </button>

@@ -66,7 +66,8 @@ function App() {
   const location = useLocation()
   return (
     <div className="flex h-full flex-col">
-      <div className="flex min-h-0 flex-1">
+      {/* Landscape notches eat into the sides; inset the whole content area. */}
+      <div className="px-safe flex min-h-0 flex-1">
         <Sidebar />
         <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto px-4 py-6 md:px-8">
           <ScrollMemory container={mainRef} />

@@ -27,7 +27,7 @@ export default function PlaybackSpeedMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-label={`Playback speed: ${formatRate(playbackRate)}`}
         aria-expanded={open}
-        className={`min-w-8 text-center text-xs font-bold tabular-nums ${
+        className={`flex size-11 items-center justify-center text-xs font-bold tabular-nums ${
           playbackRate !== 1 ? 'text-accent' : 'text-zinc-400 hover:text-white'
         }`}
       >

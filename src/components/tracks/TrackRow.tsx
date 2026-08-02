@@ -27,7 +27,7 @@ export default function TrackRow({ track, index, onPlay, actions }: Props) {
 
   return (
     <div
-      className={`group grid grid-cols-[2rem_1fr_auto] items-center gap-3 rounded-md px-2 py-1.5 [contain-intrinsic-size:auto_52px] [content-visibility:auto] hover:bg-zinc-800/70 md:grid-cols-[2rem_4fr_3fr_auto] has-[[aria-expanded=true]]:[content-visibility:visible] ${
+      className={`group grid grid-cols-[2.75rem_1fr_auto] items-center gap-3 rounded-md px-2 py-1.5 [contain-intrinsic-size:auto_52px] [content-visibility:auto] hover:bg-zinc-800/70 md:grid-cols-[2rem_4fr_3fr_auto] has-[[aria-expanded=true]]:[content-visibility:visible] ${
         isCurrent ? 'text-accent' : ''
       }`}
     >
@@ -35,7 +35,7 @@ export default function TrackRow({ track, index, onPlay, actions }: Props) {
         type="button"
         onClick={onPlay}
         aria-label={`Play ${track.title}`}
-        className="relative flex size-8 items-center justify-center text-sm text-zinc-400"
+        className="relative flex size-11 items-center justify-center text-sm text-zinc-400 md:size-8"
       >
         <span className="group-hover:invisible">{index + 1}</span>
         <PlayIcon

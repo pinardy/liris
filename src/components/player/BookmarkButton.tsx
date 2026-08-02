@@ -24,7 +24,7 @@ export default function BookmarkButton({ className }: { className?: string }) {
       onClick={() => void save()}
       aria-label="Bookmark this position"
       title="Bookmark this position"
-      className={className ?? 'text-zinc-400 hover:text-white'}
+      className={`flex size-11 items-center justify-center ${className ?? 'text-zinc-400 hover:text-white'}`}
     >
       <BookmarkIcon width="18" height="18" />
     </button>

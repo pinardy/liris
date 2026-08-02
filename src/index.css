@@ -17,6 +17,46 @@ body,
 body {
   @apply bg-zinc-950 text-zinc-100 antialiased;
   overscroll-behavior: none;
+  /* Tapping a control shouldn't flash a translucent box on mobile Safari. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * The viewport is `viewport-fit=cover`, so the page draws behind the notch and
+ * the home indicator. These utilities pad the fixed chrome back out of those
+ * regions; on devices without insets every env() resolves to 0 and nothing
+ * moves. Applied to the bottom tab bar, full-screen overlays and side panels.
+ */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Full-bleed elements (the tab bar): inset only, no minimum padding. */
+@utility px-safe {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/*
+ * For elements that already carry px-4: these utilities REPLACE that padding
+ * rather than adding to it, so the 1rem has to be restated as a floor —
+ * otherwise the inset (0 on most devices) would collapse the gutter entirely.
+ */
+@utility px-4-safe {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* p-6 (1.5rem) plus the insets, for full-screen overlays that need both. */
+@utility p-6-safe {
+  padding-top: calc(1.5rem + env(safe-area-inset-top));
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  padding-left: calc(1.5rem + env(safe-area-inset-left));
+  padding-right: calc(1.5rem + env(safe-area-inset-right));
 }
 
 ::-webkit-scrollbar {

@@ -8,6 +8,7 @@ import { formatDuration } from '../../lib/format'
 import { usePlayerStore, selectCurrentTrack } from '../../player/playerStore'
 import TermChips from '../classical/TermChips'
 import PlaybackSpeedMenu from './PlaybackSpeedMenu'
+import SleepTimerMenu from './SleepTimerMenu'
 import AboutBlurb from '../common/AboutBlurb'
 import ArtworkImage from '../common/ArtworkImage'
 import {
@@ -66,8 +67,8 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
   const surname = findComposer(track.artist)?.surname ?? track.artist
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-zinc-800 to-zinc-950 p-6">
-      <div className="flex items-center justify-end gap-5">
+    <div className="p-6-safe fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-zinc-800 to-zinc-950">
+      <div className="-mr-2 flex items-center justify-end gap-1">
         <BookmarkButton className="text-zinc-300 hover:text-white" />
         {isWork && (
           <button
@@ -75,7 +76,9 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
             onClick={() => setShowNotes((s) => !s)}
             aria-label="About this work"
             aria-pressed={showNotes}
-            className={showNotes ? 'text-accent' : 'text-zinc-300 hover:text-white'}
+            className={`flex size-11 items-center justify-center ${
+              showNotes ? 'text-accent' : 'text-zinc-300 hover:text-white'
+            }`}
           >
             <InfoIcon width="22" height="22" />
           </button>
@@ -84,7 +87,7 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
           type="button"
           onClick={onClose}
           aria-label="Close now playing"
-          className="text-zinc-300 hover:text-white"
+          className="flex size-11 items-center justify-center text-zinc-300 hover:text-white"
         >
           <CloseIcon width="24" height="24" />
         </button>
@@ -184,17 +187,19 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
 
       <div className="mx-auto w-full max-w-md pb-6 pt-4">
         <SeekBar />
-        <div className="mt-4 flex items-center justify-center gap-8">
+        <div className="mt-4 flex items-center justify-center gap-3 sm:gap-6">
           <button
             type="button"
             onClick={toggleShuffle}
             aria-label="Toggle shuffle"
             aria-pressed={shuffle}
-            className={shuffle ? 'text-accent' : 'text-zinc-400'}
+            className={`flex size-11 items-center justify-center ${
+              shuffle ? 'text-accent' : 'text-zinc-400'
+            }`}
           >
             <ShuffleIcon width="20" height="20" />
           </button>
-          <button type="button" onClick={prev} aria-label="Previous track" className="text-white">
+          <button type="button" onClick={prev} aria-label="Previous track" className="flex size-11 items-center justify-center text-white">
             <SkipPrevIcon width="30" height="30" />
           </button>
           <button
@@ -209,23 +214,30 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
               <PlayIcon width="26" height="26" className="translate-x-0.5" />
             )}
           </button>
-          <button type="button" onClick={() => next()} aria-label="Next track" className="text-white">
+          <button type="button" onClick={() => next()} aria-label="Next track" className="flex size-11 items-center justify-center text-white">
             <SkipNextIcon width="30" height="30" />
           </button>
           <button
             type="button"
             onClick={cycleRepeat}
             aria-label={`Repeat: ${repeat}`}
-            className={`relative ${repeat !== 'off' ? 'text-accent' : 'text-zinc-400'}`}
+            className={`relative flex size-11 items-center justify-center ${
+              repeat !== 'off' ? 'text-accent' : 'text-zinc-400'
+            }`}
           >
             <RepeatIcon width="20" height="20" />
             {repeat === 'one' && (
-              <span className="absolute -right-1 -top-1 text-[9px] font-bold">1</span>
+              <span className="absolute right-1.5 top-1.5 text-[9px] font-bold">1</span>
             )}
           </button>
         </div>
-        <div className="mt-3 flex justify-center">
+        {/* Speed everywhere; the sleep timer is here only on mobile, where
+            the mini player has no room for it. */}
+        <div className="mt-2 flex items-center justify-center gap-2">
           <PlaybackSpeedMenu />
+          <span className="md:hidden">
+            <SleepTimerMenu />
+          </span>
         </div>
       </div>
     </div>

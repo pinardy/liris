@@ -92,7 +92,7 @@ export default function EqualizerPanel() {
         onClick={() => setOpen((o) => !o)}
         aria-label="Equalizer"
         aria-expanded={open}
-        className={enabled ? 'text-accent' : 'text-zinc-400 hover:text-white'}
+        className={`flex size-11 items-center justify-center ${enabled ? 'text-accent' : 'text-zinc-400 hover:text-white'}`}
       >
         <SlidersIcon width="18" height="18" />
       </button>

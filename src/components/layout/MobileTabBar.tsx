@@ -3,7 +3,7 @@ import { navItems } from './navItems'
 
 export default function MobileTabBar() {
   return (
-    <nav className="flex border-t border-zinc-800 bg-black md:hidden">
+    <nav className="pb-safe px-safe flex border-t border-zinc-800 bg-black md:hidden">
       {navItems.map(({ to, short, icon: ItemIcon }) => (
         <NavLink
           key={to}
