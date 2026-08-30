@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '../../lib/fetchWithTimeout'
 import type { JamendoEnvelope } from './types'
 
 const BASE = 'https://api.jamendo.com/v3.0'
@@ -32,7 +33,7 @@ export async function jam<T>(
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, String(value))
   }
-  const res = await fetch(url)
+  const res = await fetchWithTimeout(url)
   if (!res.ok) {
     throw new JamendoError(`Jamendo request failed (HTTP ${res.status})`, res.status)
   }

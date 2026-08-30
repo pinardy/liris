@@ -5,6 +5,8 @@
  * enrichment must never break a page.
  */
 
+import { fetchWithTimeout } from '../lib/fetchWithTimeout'
+
 const SUMMARY_URL = 'https://en.wikipedia.org/api/rest_v1/page/summary/'
 const SEARCH_URL = 'https://en.wikipedia.org/w/rest.php/v1/search/title'
 
@@ -28,7 +30,9 @@ interface SummaryResponse {
 /** Summary of the article with (almost) exactly this title; follows redirects. */
 export async function fetchSummary(title: string): Promise<WikiSummary | null> {
   try {
-    const res = await fetch(`${SUMMARY_URL}${encodeURIComponent(title)}?redirect=true`)
+    const res = await fetchWithTimeout(
+      `${SUMMARY_URL}${encodeURIComponent(title)}?redirect=true`,
+    )
     if (!res.ok) return null
     const data = (await res.json()) as SummaryResponse
     if (!data.extract || data.type === 'disambiguation') return null
@@ -56,7 +60,7 @@ export async function searchSummary(
 ): Promise<WikiSummary | null> {
   try {
     const params = new URLSearchParams({ q: query, limit: '1' })
-    const res = await fetch(`${SEARCH_URL}?${params}`)
+    const res = await fetchWithTimeout(`${SEARCH_URL}?${params}`)
     if (!res.ok) return null
     const data = (await res.json()) as { pages?: { key?: string }[] }
     const key = data.pages?.[0]?.key
