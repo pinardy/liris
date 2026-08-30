@@ -31,7 +31,7 @@ export default function AboutBlurb({ load, cacheKey }: Props) {
       >
         {data.extract}
       </p>
-      <p className="mt-2 flex items-center gap-3 text-xs text-zinc-500">
+      <p className="mt-2 flex items-center gap-3 text-xs text-zinc-400">
         {clampable && (
           <button
             type="button"

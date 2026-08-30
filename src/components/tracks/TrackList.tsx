@@ -91,7 +91,7 @@ export default function TrackList({
                   onPointerUp={endDrag}
                   onPointerCancel={endDrag}
                   aria-label={`Reorder ${track.title}`}
-                  className="shrink-0 cursor-grab touch-none p-1 text-zinc-600 hover:text-zinc-300 active:cursor-grabbing"
+                  className="shrink-0 cursor-grab touch-none p-1 text-zinc-500 hover:text-zinc-300 active:cursor-grabbing"
                 >
                   <GripIcon width="14" height="14" />
                 </button>

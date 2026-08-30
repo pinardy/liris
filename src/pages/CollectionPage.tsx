@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router'
 import ArtworkImage from '../components/common/ArtworkImage'
+import BackLink from '../components/common/BackLink'
 import Button from '../components/common/Button'
 import DetailHeader from '../components/common/DetailHeader'
 import { PlayIcon } from '../components/common/icons'
@@ -16,7 +17,13 @@ export default function CollectionPage() {
   const playQueue = usePlayerStore((s) => s.playQueue)
 
   const collection = classicalCollections.find((c) => c.itemId === itemId)
-  if (!collection) return <EmptyState title="Collection not found" />
+  if (!collection) {
+    return (
+      <EmptyState title="Collection not found" action={{ label: 'Go home', to: '/' }}>
+        The source collections are listed on the home page.
+      </EmptyState>
+    )
+  }
   if (loading || error) return <AsyncGate loading={loading} error={error} />
 
   const works = (index?.works ?? []).filter((w) =>
@@ -30,6 +37,7 @@ export default function CollectionPage() {
 
   return (
     <>
+      <BackLink fallback="/" fallbackLabel="Home" />
       <DetailHeader
         artwork={
           <ArtworkImage
@@ -45,7 +53,7 @@ export default function CollectionPage() {
           <p className="mt-1 text-sm text-zinc-400">
             {collection.artist} · {works.length} works · {tracks.length} movements
           </p>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-xs text-zinc-400">
             {collection.license} ·{' '}
             <a
               href={`https://archive.org/details/${collection.itemId}`}
@@ -81,10 +89,16 @@ export default function CollectionPage() {
           ))}
         </div>
       ) : (
-        <EmptyState title="No works loaded from this collection" />
+        <EmptyState
+          title="No works loaded from this collection"
+          action={{ label: 'Browse composers', to: '/composers' }}
+        >
+          Its recordings couldn't be indexed — the rest of the catalog is
+          unaffected.
+        </EmptyState>
       )}
 
-      <p className="mt-6 text-xs text-zinc-600">
+      <p className="mt-6 text-xs text-zinc-500">
         <Link to="/" className="hover:underline">
           ← All collections
         </Link>

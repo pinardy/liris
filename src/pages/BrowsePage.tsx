@@ -1,6 +1,7 @@
 import { useParams } from 'react-router'
 import { PlayIcon } from '../components/common/icons'
 import AboutBlurb from '../components/common/AboutBlurb'
+import BackLink from '../components/common/BackLink'
 import Button from '../components/common/Button'
 import StartRadioButton from '../components/common/StartRadioButton'
 import { AsyncGate, EmptyState } from '../components/common/Status'
@@ -21,6 +22,15 @@ const MODE_LABELS: Record<Mode, string> = {
   instrument: 'Instrument',
 }
 
+/** Where each browse dimension came from, for back and not-found recovery.
+ *  Only periods have a dedicated index page; the rest are entered from Home. */
+const PARENT: Record<Mode, { to: string; label: string }> = {
+  period: { to: '/composers', label: 'Composers' },
+  form: { to: '/', label: 'Home' },
+  performer: { to: '/', label: 'Home' },
+  instrument: { to: '/', label: 'Home' },
+}
+
 /** Shared list page for the secondary browse dimensions. */
 export default function BrowsePage({ mode }: { mode: Mode }) {
   const { slug } = useParams()
@@ -28,7 +38,28 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
   const playQueue = usePlayerStore((s) => s.playQueue)
 
   if (loading || error) return <AsyncGate loading={loading} error={error} />
-  if (!index || !slug) return <EmptyState title="Catalog unavailable" />
+  if (!index || !slug) {
+    return (
+      <EmptyState
+        title="Catalog unavailable"
+        action={{ label: 'Reload', onClick: () => window.location.reload() }}
+      >
+        The classical catalog couldn't be loaded. Downloads and your imported
+        library still play.
+      </EmptyState>
+    )
+  }
+
+  /** Every not-found branch here is a dead end otherwise — always offer the
+   *  list this page belongs to. */
+  const notFound = (label: string) => (
+    <>
+      <BackLink fallback={PARENT[mode].to} fallbackLabel={PARENT[mode].label} />
+      <EmptyState title={label} action={PARENT[mode]}>
+        It may have been renamed, or the link may be out of date.
+      </EmptyState>
+    </>
+  )
 
   let title = ''
   let subtitle = ''
@@ -38,25 +69,25 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
 
   if (mode === 'period') {
     const period = periods.find((p) => p.slug === slug)
-    if (!period) return <EmptyState title="Period not found" />
+    if (!period) return notFound('Period not found')
     title = period.name
     subtitle = `${period.range} — ${period.blurb}`
     works = index.byPeriod.get(period.name) ?? []
   } else if (mode === 'form') {
     const form = formBySlug(slug)
-    if (!form) return <EmptyState title="Form not found" />
+    if (!form) return notFound('Form not found')
     title = form.label
     subtitle = form.blurb
     works = index.byForm.get(form.slug) ?? []
   } else if (mode === 'instrument') {
     const instrument = instrumentBySlug(slug)
-    if (!instrument) return <EmptyState title="Instrument not found" />
+    if (!instrument) return notFound('Instrument not found')
     title = instrument.label
     subtitle = instrument.blurb
     works = index.byInstrument.get(instrument.slug) ?? []
   } else {
     const performer = index.performers.find((p) => p.slug === slug)
-    if (!performer) return <EmptyState title="Performer not found" />
+    if (!performer) return notFound('Performer not found')
     title = performer.name
     subtitle = roleLabels[performer.role]
     works = performer.works
@@ -67,6 +98,7 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
 
   return (
     <>
+      <BackLink fallback={PARENT[mode].to} fallbackLabel={PARENT[mode].label} />
       <div className="mb-6">
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
           {MODE_LABELS[mode]}
@@ -106,7 +138,12 @@ export default function BrowsePage({ mode }: { mode: Mode }) {
           ))}
         </div>
       ) : (
-        <EmptyState title="Nothing here yet" />
+        <EmptyState
+          title="Nothing here yet"
+          action={{ label: 'Browse composers', to: '/composers' }}
+        >
+          No indexed recording matches this yet.
+        </EmptyState>
       )}
     </>
   )

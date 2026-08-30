@@ -78,7 +78,17 @@ export default function QuizPage() {
   )
 
   if (loading || error) return <AsyncGate loading={loading} error={error} />
-  if (!index) return <EmptyState title="Catalog unavailable" />
+  if (!index) {
+    return (
+      <EmptyState
+      title="Catalog unavailable"
+      action={{ label: 'Reload', onClick: () => window.location.reload() }}
+    >
+      The classical catalog couldn't be loaded. Your downloads and imported
+      library still play.
+    </EmptyState>
+    )
+  }
 
   const eligible = index.works.filter((w) => isEligible(mode, w))
   // Decoys come from all catalog composers, but only distinct present answers

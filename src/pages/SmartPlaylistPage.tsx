@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import SmartPlaylistModal from '../components/playlists/SmartPlaylistModal'
+import BackLink from '../components/common/BackLink'
 import Button from '../components/common/Button'
 import DetailHeader from '../components/common/DetailHeader'
 import StartRadioButton from '../components/common/StartRadioButton'
@@ -28,9 +29,25 @@ export default function SmartPlaylistPage() {
   const [editing, setEditing] = useState(false)
 
   if (playlist === undefined || loading) return <Spinner />
-  if (playlist === null) return <EmptyState title="Smart playlist not found" />
+  if (playlist === null) {
+    return (
+      <EmptyState
+        title="Smart playlist not found"
+        action={{ label: 'All playlists', to: '/playlists' }}
+      >
+        It may have been deleted, or the link may be from another device.
+      </EmptyState>
+    )
+  }
   if (error) return <ErrorMessage error={error} />
-  if (!index) return <EmptyState title="Catalog unavailable" />
+  if (!index) {
+    return (
+      <EmptyState title="Catalog unavailable" action={{ label: 'Reload', onClick: () => window.location.reload() }}>
+        The classical catalog couldn't be loaded, so these rules can't be
+        evaluated. Downloads and your imported library still play.
+      </EmptyState>
+    )
+  }
 
   const works = evaluateSmartRules(playlist.rules, index)
   const allTracks = works.flatMap(workTracks)
@@ -43,6 +60,7 @@ export default function SmartPlaylistPage() {
 
   return (
     <>
+      <BackLink fallback="/playlists" fallbackLabel="Playlists" />
       <DetailHeader
         artwork={
           <div className="flex size-40 items-center justify-center rounded-lg bg-zinc-800 text-accent sm:size-48">

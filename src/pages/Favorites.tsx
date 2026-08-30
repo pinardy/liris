@@ -101,7 +101,10 @@ export default function Favorites() {
       )}
 
       {tracks && tracks.length === 0 && (
-        <EmptyState title="No favorites yet">
+        <EmptyState
+          title="No favorites yet"
+          action={{ label: 'Browse composers', to: '/composers' }}
+        >
           Tap the heart on any track — or on a work's page to save all its
           movements at once.
         </EmptyState>

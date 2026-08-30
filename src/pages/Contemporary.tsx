@@ -43,7 +43,13 @@ export default function Contemporary() {
         (tracks.length > 0 ? (
           <TrackList tracks={tracks} onPlay={(i) => playQueue(tracks, i)} />
         ) : (
-          <EmptyState title="No contemporary tracks found" />
+          <EmptyState
+            title="No contemporary tracks found"
+            action={{ label: 'Browse the classical catalog', to: '/composers' }}
+          >
+            Jamendo returned nothing for these tags — it may be unreachable
+            right now.
+          </EmptyState>
         ))}
     </>
   )

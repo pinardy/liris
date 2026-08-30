@@ -52,7 +52,7 @@ export default function PlaylistPickerModal({
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="New playlist name"
-          className="min-w-0 flex-1 rounded-md bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/30"
+          className="min-w-0 flex-1 rounded-md bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-white/30"
         />
         <button
           type="submit"
@@ -69,7 +69,7 @@ export default function PlaylistPickerModal({
 
       <div className="max-h-64 overflow-y-auto">
         {playlists?.length === 0 && (
-          <p className="py-2 text-sm text-zinc-500">No playlists yet — create one above.</p>
+          <p className="py-2 text-sm text-zinc-400">No playlists yet — create one above.</p>
         )}
         {playlists?.map((p) => (
           <button
@@ -79,7 +79,7 @@ export default function PlaylistPickerModal({
             className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-zinc-800"
           >
             <span className="truncate">{p.name}</span>
-            <span className="ml-2 shrink-0 text-xs text-zinc-500">
+            <span className="ml-2 shrink-0 text-xs text-zinc-400">
               {p.trackIds.length} tracks
             </span>
           </button>

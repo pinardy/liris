@@ -42,7 +42,7 @@ function BookmarkRow({ entry }: { entry: BookmarkEntry }) {
         </p>
       </div>
       {track && (
-        <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+        <span className="shrink-0 text-xs tabular-nums text-zinc-400">
           / {formatDuration(track.durationSec)}
         </span>
       )}
@@ -50,7 +50,7 @@ function BookmarkRow({ entry }: { entry: BookmarkEntry }) {
         type="button"
         onClick={() => void removeBookmark(bookmark.id)}
         aria-label={`Delete bookmark in ${bookmark.title}`}
-        className="invisible shrink-0 text-zinc-500 hover:text-white group-hover:visible"
+        className="flex size-11 shrink-0 items-center justify-center text-zinc-400 hover:text-white md:invisible md:size-8 md:group-focus-within:visible md:group-hover:visible"
       >
         <CloseIcon width="16" height="16" />
       </button>
@@ -73,7 +73,10 @@ export default function Bookmarks() {
           ))}
         </div>
       ) : (
-        <EmptyState title="No bookmarks yet">
+        <EmptyState
+          title="No bookmarks yet"
+          action={{ label: 'Find something to play', to: '/composers' }}
+        >
           While something plays, tap the bookmark icon in the player to save your spot
           in a long movement — resume it from here anytime.
         </EmptyState>

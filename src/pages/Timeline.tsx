@@ -18,11 +18,30 @@ export default function Timeline() {
 
   if (loading) return <Spinner />
   if (error) return <ErrorMessage error={error} />
-  if (!index) return <EmptyState title="Catalog unavailable" />
+  if (!index) {
+    return (
+      <EmptyState
+      title="Catalog unavailable"
+      action={{ label: 'Reload', onClick: () => window.location.reload() }}
+    >
+      The classical catalog couldn't be loaded. Your downloads and imported
+      library still play.
+    </EmptyState>
+    )
+  }
 
   // Already sorted by birth year in the index.
   const entries = index.composers.filter((e) => e.composer?.born)
-  if (entries.length === 0) return <EmptyState title="No dated composers yet" />
+  if (entries.length === 0) {
+    return (
+      <EmptyState
+        title="No dated composers yet"
+        action={{ label: 'All composers', to: '/composers' }}
+      >
+        None of the indexed composers carry dates to place on a timeline.
+      </EmptyState>
+    )
+  }
 
   const lifespans = entries.map((e) => ({
     entry: e,
@@ -63,7 +82,7 @@ export default function Timeline() {
           >
             <span className={`size-2.5 rounded-full ${periodColors[p.name]}`} />
             {p.name}
-            <span className="text-zinc-500">{p.range}</span>
+            <span className="text-zinc-400">{p.range}</span>
           </Link>
         ))}
       </div>
@@ -85,7 +104,7 @@ export default function Timeline() {
             {gridYears.map((y) => (
               <span
                 key={y}
-                className="absolute top-0 text-[10px] tabular-nums text-zinc-500"
+                className="absolute top-0 text-[10px] tabular-nums text-zinc-400"
                 style={{ left: x(y) + 4 }}
               >
                 {y}

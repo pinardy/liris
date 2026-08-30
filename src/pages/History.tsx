@@ -55,7 +55,10 @@ export default function History() {
       </PageHeading>
 
       {entries.length === 0 && (
-        <EmptyState title="Nothing played yet">
+        <EmptyState
+          title="Nothing played yet"
+          action={{ label: 'Browse composers', to: '/composers' }}
+        >
           Every movement you play is remembered here.
         </EmptyState>
       )}
@@ -64,7 +67,7 @@ export default function History() {
         <section key={day.label} className="mb-6">
           <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-zinc-400">
             {day.label}
-            <span className="ml-2 font-normal normal-case text-zinc-500">
+            <span className="ml-2 font-normal normal-case text-zinc-400">
               {day.entries.length} {day.entries.length === 1 ? 'play' : 'plays'}
             </span>
           </h2>
@@ -74,7 +77,7 @@ export default function History() {
                 key={entry.play.id}
                 className="group flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-zinc-800/70"
               >
-                <span className="w-14 shrink-0 text-xs tabular-nums text-zinc-500">
+                <span className="w-14 shrink-0 text-xs tabular-nums text-zinc-400">
                   {new Date(entry.play.playedAt).toLocaleTimeString(undefined, {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -104,7 +107,7 @@ export default function History() {
                     {entry.play.composer}
                   </p>
                 </div>
-                <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+                <span className="shrink-0 text-xs tabular-nums text-zinc-400">
                   {formatDuration(entry.play.durationSec)}
                 </span>
               </div>
@@ -114,7 +117,7 @@ export default function History() {
       ))}
 
       {entries.length === 500 && (
-        <p className="pb-4 text-xs text-zinc-600">Showing the last 500 plays.</p>
+        <p className="pb-4 text-xs text-zinc-500">Showing the last 500 plays.</p>
       )}
     </>
   )

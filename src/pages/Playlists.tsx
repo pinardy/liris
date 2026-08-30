@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import PageHeading from '../components/common/PageHeading'
@@ -7,7 +7,7 @@ import { PlaylistIcon, PlusIcon, SparklesIcon } from '../components/common/icons
 import Modal from '../components/common/Modal'
 import SmartPlaylistModal from '../components/playlists/SmartPlaylistModal'
 import { describeSmartRules } from '../lib/smartRules'
-import { exportBackup, importBackup } from '../services/db/backup'
+import { toast } from '../lib/toast'
 import { createPlaylist, getPlaylists } from '../services/db/playlists'
 import {
   createSmartPlaylist,
@@ -20,8 +20,6 @@ export default function Playlists() {
   const [creating, setCreating] = useState(false)
   const [creatingSmart, setCreatingSmart] = useState(false)
   const [name, setName] = useState('')
-  const importInput = useRef<HTMLInputElement>(null)
-  const [backupMessage, setBackupMessage] = useState<string>()
 
   async function create() {
     const trimmed = name.trim()
@@ -29,28 +27,7 @@ export default function Playlists() {
     await createPlaylist(trimmed)
     setName('')
     setCreating(false)
-  }
-
-  async function handleExport() {
-    const blob = await exportBackup()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `liris-backup-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  async function handleImport(file: File | undefined) {
-    if (!file) return
-    try {
-      const result = await importBackup(file)
-      setBackupMessage(
-        `Restored ${result.playlists} playlist${result.playlists === 1 ? '' : 's'} and ${result.favorites} favorite${result.favorites === 1 ? '' : 's'}.`,
-      )
-    } catch (err) {
-      setBackupMessage(err instanceof Error ? err.message : 'Import failed')
-    }
+    toast(`Created “${trimmed}”`)
   }
 
   return (
@@ -77,37 +54,17 @@ export default function Playlists() {
         </div>
       </PageHeading>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
-        <button
-          type="button"
-          onClick={() => void handleExport()}
+      {/* Backup lives in Settings only. It used to exist here too, with its
+          own copy and its own inline result message, so the same operation
+          behaved differently depending on where you ran it. */}
+      <p className="mb-6 text-sm">
+        <Link
+          to="/settings"
           className="text-zinc-400 underline-offset-2 hover:text-white hover:underline"
         >
-          Export backup
-        </button>
-        <span className="text-zinc-700">·</span>
-        <button
-          type="button"
-          onClick={() => importInput.current?.click()}
-          className="text-zinc-400 underline-offset-2 hover:text-white hover:underline"
-        >
-          Import backup
-        </button>
-        <span className="text-xs text-zinc-500">
-          Backs up playlists &amp; favorites (not local audio files).
-        </span>
-        {backupMessage && <span className="text-xs text-accent">{backupMessage}</span>}
-        <input
-          ref={importInput}
-          type="file"
-          accept="application/json,.json"
-          className="hidden"
-          onChange={(e) => {
-            void handleImport(e.target.files?.[0])
-            e.target.value = ''
-          }}
-        />
-      </div>
+          Back up or restore your playlists &amp; favorites →
+        </Link>
+      </p>
 
       {creating && (
         <Modal title="New playlist" onClose={() => setCreating(false)}>
@@ -124,7 +81,7 @@ export default function Playlists() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Playlist name"
               autoFocus
-              className="min-w-0 flex-1 rounded-md bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="min-w-0 flex-1 rounded-md bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
             <button
               type="submit"
@@ -183,7 +140,7 @@ export default function Playlists() {
               to={`/playlists/${p.id}`}
               className="group flex flex-col gap-2 rounded-lg bg-zinc-900/60 p-3 transition-colors hover:bg-zinc-800"
             >
-              <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 text-zinc-600">
+              <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 text-zinc-500">
                 <PlaylistIcon width="40%" height="40%" />
               </div>
               <div className="min-w-0">
@@ -197,7 +154,10 @@ export default function Playlists() {
         </div>
       ) : (
         playlists && (
-          <EmptyState title="No playlists yet">
+          <EmptyState
+            title="No playlists yet"
+            action={{ label: 'New playlist', onClick: () => setCreating(true) }}
+          >
             Create a playlist and mix Jamendo tracks with your own files — playback
             moves seamlessly between both.
           </EmptyState>

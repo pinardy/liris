@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import DownloadWorkButton from '../components/classical/DownloadWorkButton'
 import FavoriteWorkButton from '../components/classical/FavoriteWorkButton'
 import TermChips from '../components/classical/TermChips'
 import AboutBlurb from '../components/common/AboutBlurb'
+import BackLink from '../components/common/BackLink'
 import ArtworkImage from '../components/common/ArtworkImage'
 import Button from '../components/common/Button'
 import { buttonClass } from '../components/common/buttonStyles'
@@ -24,11 +24,31 @@ export default function WorkPage() {
   const { id } = useParams()
   const { data: index, error, loading } = useClassicalIndex()
   const playQueue = usePlayerStore((s) => s.playQueue)
-  const [recordingIdx, setRecordingIdx] = useState(0)
+  // The chosen recording is a first-class choice on this page, so it lives in
+  // the URL: shareable, and still selected after a back-navigation.
+  const [params, setParams] = useSearchParams()
+  // Truncated as well as clamped: a fractional index (?rec=1.5) survives
+  // Math.min and then indexes the array to undefined.
+  const recordingIdx = Math.max(0, Math.trunc(Number(params.get('rec')) || 0))
+  function setRecordingIdx(next: number) {
+    const p = new URLSearchParams(params)
+    if (next === 0) p.delete('rec')
+    else p.set('rec', String(next))
+    setParams(p, { replace: true })
+  }
 
   if (loading || error) return <AsyncGate loading={loading} error={error} />
   const work = id ? index?.workById.get(id) : undefined
-  if (!work) return <EmptyState title="Work not found" />
+  if (!work) {
+    return (
+      <EmptyState
+        title="Work not found"
+        action={{ label: 'Browse composers', to: '/composers' }}
+      >
+        It may not be part of the catalog this app indexes.
+      </EmptyState>
+    )
+  }
 
   const recording = work.recordings[Math.min(recordingIdx, work.recordings.length - 1)]
   const form = work.formSlug ? formBySlug(work.formSlug) : undefined
@@ -43,6 +63,7 @@ export default function WorkPage() {
 
   return (
     <>
+      <BackLink fallback="/composers" fallbackLabel="Composers" />
       <DetailHeader
         artwork={
           <ArtworkImage
@@ -148,7 +169,7 @@ export default function WorkPage() {
 
       <TermChips texts={[work.title, ...recording.tracks.map((t) => t.title)]} />
 
-      <p className="mt-6 text-xs text-zinc-600">
+      <p className="mt-6 text-xs text-zinc-500">
         From{' '}
         <Link to={`/collection/${recording.collectionId}`} className="hover:underline">
           {recording.collectionName}

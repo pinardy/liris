@@ -4,7 +4,7 @@
  * Same shape as the toast bus: emitting with no listener is a silent no-op.
  */
 
-export type AppEvent = 'toggle-queue'
+export type AppEvent = 'toggle-queue' | 'show-shortcuts'
 
 const listeners = new Map<AppEvent, Set<() => void>>()
 

@@ -37,7 +37,7 @@ export default function ArtworkImage({
     <div
       className={`relative shrink-0 overflow-hidden bg-zinc-800 ${rounded} ${className}`}
     >
-      <div className="absolute inset-0 flex items-center justify-center text-zinc-600">
+      <div className="absolute inset-0 flex items-center justify-center text-zinc-500">
         <MusicNoteIcon width="40%" height="40%" />
       </div>
       {src && !failed && (
