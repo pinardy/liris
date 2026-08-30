@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { PLAYBACK_RATES, usePlayerStore } from '../../player/playerStore'
 
 function formatRate(rate: number): string {
@@ -19,6 +20,7 @@ export default function PlaybackSpeedMenu() {
   const [open, setOpen] = useState(false)
   // A mobile back swipe closes the menu while it's open.
   useBackDismiss(() => setOpen(false), open)
+  useEscapeKey(open, () => setOpen(false))
 
   return (
     <span className="relative">
@@ -75,7 +77,7 @@ export default function PlaybackSpeedMenu() {
               />
               Keep pitch
             </label>
-            <p className="px-3 pb-1.5 text-[10px] leading-snug text-zinc-500">
+            <p className="px-3 pb-1.5 text-[10px] leading-snug text-zinc-400">
               {preservePitch
                 ? 'Speed changes, pitch stays — for slow practice.'
                 : 'Turntable mode: slower also means lower. ≈.944× lands near A415.'}

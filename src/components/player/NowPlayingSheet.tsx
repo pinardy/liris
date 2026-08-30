@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
+import { useDialogBehavior } from '../../hooks/useDialogBehavior'
+import { useSwipe } from '../../hooks/useSwipe'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
 import { isSameWork, workIdForTrack } from '../../lib/classical'
 import { findComposer } from '../../lib/composers'
@@ -44,6 +46,10 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
   const queue = usePlayerStore((s) => s.queue)
   const currentIndex = usePlayerStore((s) => s.currentIndex)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const isLoading = usePlayerStore((s) => s.isLoading)
+  const resumeAt = usePlayerStore((s) =>
+    s.restoredFromSession && s.positionSec > 1 ? s.positionSec : null,
+  )
   const shuffle = usePlayerStore((s) => s.shuffle)
   const repeat = usePlayerStore((s) => s.repeat)
   const togglePlay = usePlayerStore((s) => s.togglePlay)
@@ -58,6 +64,11 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
 
   // A mobile back swipe closes the sheet like the X button does.
   useBackDismiss(onClose)
+  const sheetRef = useRef<HTMLDivElement>(null)
+  useDialogBehavior(sheetRef, onClose)
+  // Flick down to dismiss — the counterpart to the flick up that opened it.
+  // Attached only to the non-scrolling regions, never the notes list.
+  const swipeDown = useSwipe({ onSwipeDown: onClose })
 
   if (!track) return null
 
@@ -67,8 +78,22 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
   const surname = findComposer(track.artist)?.surname ?? track.artist
 
   return (
-    <div className="p-6-safe fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-zinc-800 to-zinc-950">
-      <div className="-mr-2 flex items-center justify-end gap-1">
+    <div
+      ref={sheetRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Now playing"
+      tabIndex={-1}
+      className="p-6-safe fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-zinc-800 to-zinc-950 focus:outline-none"
+    >
+      <div {...swipeDown}>
+        {/* Grabber: the affordance for the flick-down dismiss. */}
+        <div
+          aria-hidden="true"
+          className="mx-auto mb-3 h-1 w-10 rounded-full bg-zinc-600 md:hidden"
+        />
+      </div>
+      <div {...swipeDown} className="-mr-2 flex items-center justify-end gap-1">
         <BookmarkButton className="text-zinc-300 hover:text-white" />
         {isWork && (
           <button
@@ -127,11 +152,11 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
                     isCurrent ? 'text-accent' : 'text-zinc-200'
                   }`}
                 >
-                  <span className="w-5 shrink-0 text-right text-xs tabular-nums text-zinc-500">
+                  <span className="w-5 shrink-0 text-right text-xs tabular-nums text-zinc-400">
                     {i + 1}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-sm">{m.title}</span>
-                  <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+                  <span className="shrink-0 text-xs tabular-nums text-zinc-400">
                     {formatDuration(m.durationSec)}
                   </span>
                 </button>
@@ -149,7 +174,10 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
           <TermChips texts={[track.album ?? '', ...movements.map((m) => m.title)]} />
         </div>
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-8">
+        <div
+          {...swipeDown}
+          className="flex flex-1 flex-col items-center justify-center gap-8"
+        >
           <ArtworkImage
             src={artworkUrl}
             className="aspect-square w-full max-w-xs"
@@ -175,12 +203,19 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
             <p className="truncate text-sm text-zinc-400">
               {track.artist}
               {isWork && movements.length > 1 && (
-                <span className="text-zinc-500">
+                <span className="text-zinc-400">
                   {' '}
                   · Movement {currentIndex - start + 1} of {movements.length}
                 </span>
               )}
             </p>
+            {/* The queue came back from the last session; say so, otherwise a
+                pre-filled position looks like a bug rather than a resume. */}
+            {resumeAt !== null && (
+              <p className="mt-2 text-xs text-accent">
+                Picks up where you left off · {formatDuration(resumeAt)}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -191,10 +226,14 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={toggleShuffle}
-            aria-label="Toggle shuffle"
+            aria-label={shuffle ? 'Shuffle on' : 'Shuffle off'}
             aria-pressed={shuffle}
-            className={`flex size-11 items-center justify-center ${
-              shuffle ? 'text-accent' : 'text-zinc-400'
+            // An underline carries the on-state alongside the accent colour,
+            // which on its own is invisible to a colourblind listener.
+            className={`relative flex size-11 items-center justify-center ${
+              shuffle
+                ? 'text-accent after:absolute after:bottom-1.5 after:h-0.5 after:w-4 after:rounded-full after:bg-accent'
+                : 'text-zinc-400'
             }`}
           >
             <ShuffleIcon width="20" height="20" />
@@ -205,10 +244,23 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={togglePlay}
-            aria-label={isPlaying ? 'Pause' : 'Play'}
+            aria-label={
+              isLoading
+                ? 'Loading'
+                : isPlaying
+                  ? 'Pause'
+                  : resumeAt !== null
+                    ? `Resume from ${formatDuration(resumeAt)}`
+                    : 'Play'
+            }
             className="flex size-16 items-center justify-center rounded-full bg-white text-black"
           >
-            {isPlaying ? (
+            {isLoading ? (
+              <span
+                aria-hidden="true"
+                className="size-6 animate-spin rounded-full border-[3px] border-black/25 border-t-black"
+              />
+            ) : isPlaying ? (
               <PauseIcon width="26" height="26" />
             ) : (
               <PlayIcon width="26" height="26" className="translate-x-0.5" />
@@ -220,14 +272,22 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={cycleRepeat}
-            aria-label={`Repeat: ${repeat}`}
+            aria-label={
+              repeat === 'off'
+                ? 'Repeat off'
+                : repeat === 'one'
+                  ? 'Repeat this track'
+                  : 'Repeat the queue'
+            }
             className={`relative flex size-11 items-center justify-center ${
-              repeat !== 'off' ? 'text-accent' : 'text-zinc-400'
+              repeat !== 'off'
+                ? 'text-accent after:absolute after:bottom-1.5 after:h-0.5 after:w-4 after:rounded-full after:bg-accent'
+                : 'text-zinc-400'
             }`}
           >
             <RepeatIcon width="20" height="20" />
             {repeat === 'one' && (
-              <span className="absolute right-1.5 top-1.5 text-[9px] font-bold">1</span>
+              <span className="absolute right-1.5 top-1.5 text-[10px] font-bold">1</span>
             )}
           </button>
         </div>

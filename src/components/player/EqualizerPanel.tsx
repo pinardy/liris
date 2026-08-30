@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { isIOS } from '../../lib/platform'
 import {
   EQ_BAND_LABELS,
@@ -59,6 +60,7 @@ export default function EqualizerPanel() {
   const [open, setOpen] = useState(false)
   // A mobile back swipe closes the panel while it's open.
   useBackDismiss(() => setOpen(false), open)
+  useEscapeKey(open, () => setOpen(false))
   const [enabled, setEnabled] = useState(isFxEnabled)
   const [gains, setGains] = useState(loadGains)
   const [enabling, setEnabling] = useState(false)
@@ -148,6 +150,7 @@ export default function EqualizerPanel() {
                       step={1}
                       value={gains[i]}
                       aria-label={`${label} Hz gain`}
+                      aria-valuetext={`${gains[i] > 0 ? '+' : ''}${gains[i]} decibels`}
                       onChange={(e) => handleGain(i, Number(e.target.value))}
                       className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-zinc-600 accent-accent"
                     />
@@ -175,7 +178,7 @@ export default function EqualizerPanel() {
                     Turn off
                   </button>
                 </div>
-                <p className="mt-3 text-[11px] leading-snug text-zinc-500">
+                <p className="mt-3 text-[11px] leading-snug text-zinc-400">
                   Radio streams bypass the equalizer.
                 </p>
               </>

@@ -89,6 +89,48 @@ body {
   padding-right: calc(1.5rem + env(safe-area-inset-right));
 }
 
+/*
+ * Seek slider: the input itself is a tall touch target (its height comes from
+ * utility classes); only the track drawn inside it stays slim. appearance-none
+ * removes the native track so --range-fill — set inline by SeekBar — can paint
+ * played / buffered / rest as a single gradient.
+ */
+input[type='range'].player-range {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+input[type='range'].player-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--range-fill, #3f3f46);
+}
+
+input[type='range'].player-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -4px; /* center a 12px thumb on the 4px track */
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: #fff;
+}
+
+input[type='range'].player-range::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--range-fill, #3f3f46);
+}
+
+input[type='range'].player-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 9999px;
+  background: #fff;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }
