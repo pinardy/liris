@@ -1,4 +1,5 @@
 import { db } from '../services/db/db'
+import { ensureMediaHandlers, setPlaybackState, updateMediaSession } from './mediaSession'
 import { usePlayerStore, type PersistedSession, type PlayerState } from './playerStore'
 
 /**
@@ -50,6 +51,16 @@ export async function initSessionPersistence(): Promise<void> {
     const row = await db.cache.get(SESSION_KEY)
     if (row && looksLikeSession(row.value) && row.value.queue.length > 0) {
       usePlayerStore.getState().restoreSession(row.value)
+      // Put the restored track on the lock screen straight away, paused, with
+      // working media keys — before this the controls were dead until the
+      // user had already pressed play in the app.
+      const restored = usePlayerStore.getState()
+      const track = restored.queue[restored.currentIndex]
+      if (track) {
+        ensureMediaHandlers()
+        setPlaybackState('paused')
+        void updateMediaSession(track)
+      }
     }
   } catch {
     // No session to restore; start fresh.
