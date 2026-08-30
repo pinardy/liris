@@ -14,7 +14,14 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt', not 'autoUpdate': a deploy must not swap the running app
+      // out from under a listener. PwaUpdatePrompt offers the new version and
+      // reloads only when the user accepts.
+      registerType: 'prompt',
+      // Registration happens in PwaUpdatePrompt so it can receive the
+      // update callbacks; the auto-injected script would register a second,
+      // callback-less copy.
+      injectRegister: null,
       includeAssets: ['favicon-32.png', 'favicon-96.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Liris Classical',
