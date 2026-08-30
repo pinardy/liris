@@ -55,7 +55,7 @@ function Heatmap({ playsByDay }: { playsByDay: Map<string, number> }) {
       <div className="flex gap-0.5">
         {weeks.map((week) => (
           <div key={week.days[0].key} className="flex flex-col gap-0.5">
-            <span className="h-4 overflow-visible whitespace-nowrap text-[9px] text-zinc-500">
+            <span className="h-4 overflow-visible whitespace-nowrap text-[9px] text-zinc-400">
               {week.label ?? ''}
             </span>
             {week.days.map((day) => (
@@ -74,7 +74,7 @@ function Heatmap({ playsByDay }: { playsByDay: Map<string, number> }) {
           </div>
         ))}
       </div>
-      <p className="mt-2 flex items-center gap-1.5 text-[10px] text-zinc-500">
+      <p className="mt-2 flex items-center gap-1.5 text-[10px] text-zinc-400">
         Less
         {[0, 1, 3, 6, 10].map((n) => (
           <span key={n} className={`size-3 rounded-[3px] ${heatClass(n)}`} />
@@ -104,7 +104,10 @@ export default function Stats() {
     return (
       <>
         <PageHeading title="Your listening" />
-        <EmptyState title="Nothing to count yet">
+        <EmptyState
+          title="Nothing to count yet"
+          action={{ label: 'Find something to play', to: '/composers' }}
+        >
           Play a few movements and this page starts keeping score: top composers,
           favorite periods, streaks.
         </EmptyState>
@@ -178,7 +181,7 @@ export default function Stats() {
                 }`}
               />
               {p.period}
-              <span className="tabular-nums text-zinc-500">
+              <span className="tabular-nums text-zinc-400">
                 {Math.round((p.plays / stats.totalPlays) * 100)}%
               </span>
             </span>
@@ -238,7 +241,7 @@ export default function Stats() {
                 key={`${w.composer}::${w.title}`}
                 className="flex items-baseline gap-3 border-b border-zinc-900 py-2 last:border-0"
               >
-                <span className="w-5 shrink-0 text-right text-sm tabular-nums text-zinc-500">
+                <span className="w-5 shrink-0 text-right text-sm tabular-nums text-zinc-400">
                   {i + 1}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -252,7 +255,7 @@ export default function Stats() {
                   ) : (
                     <span className="block truncate text-sm font-medium">{w.title}</span>
                   )}
-                  <span className="block truncate text-xs text-zinc-500">{w.composer}</span>
+                  <span className="block truncate text-xs text-zinc-400">{w.composer}</span>
                 </span>
                 <span className="shrink-0 text-xs tabular-nums text-zinc-400">
                   {w.plays} {w.plays === 1 ? 'play' : 'plays'}

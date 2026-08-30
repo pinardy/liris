@@ -33,7 +33,45 @@ export default function ScrollMemory({
   useLayoutEffect(() => {
     const el = container.current
     if (!el) return
-    el.scrollTop = navigationType === 'POP' ? (positions.get(location.key) ?? 0) : 0
+    if (navigationType !== 'POP') {
+      el.scrollTop = 0
+      return
+    }
+    const target = positions.get(location.key) ?? 0
+    el.scrollTop = target
+    if (target === 0) return
+
+    // Dexie-backed pages (library, favorites, downloads, history…) render
+    // empty on the first pass, so the container is far too short to hold the
+    // restored offset and the assignment above clamps to 0. Keep re-applying
+    // it as rows arrive and the page grows, then stop — either once the
+    // offset sticks, or as soon as the user scrolls for themselves.
+    //
+    // A MutationObserver, not a ResizeObserver: the container is a flex child
+    // sized by the viewport, so its own box never changes when children are
+    // appended — only scrollHeight grows, which a ResizeObserver can't see.
+    let settled = false
+    const observer = new MutationObserver(() => {
+      if (settled || el.scrollTop === target) return
+      if (el.scrollHeight - el.clientHeight >= target) {
+        el.scrollTop = target
+        settled = true
+      }
+    })
+    observer.observe(el, { childList: true, subtree: true })
+    const onManualScroll = () => {
+      settled = true
+    }
+    // A wheel/touch scroll means the reader has taken over; never fight it.
+    el.addEventListener('wheel', onManualScroll, { passive: true, once: true })
+    el.addEventListener('touchmove', onManualScroll, { passive: true, once: true })
+    const stop = setTimeout(() => observer.disconnect(), 3000)
+    return () => {
+      clearTimeout(stop)
+      observer.disconnect()
+      el.removeEventListener('wheel', onManualScroll)
+      el.removeEventListener('touchmove', onManualScroll)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key])
 

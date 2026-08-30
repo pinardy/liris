@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Track } from '../../types/model'
+import { toast } from '../../lib/toast'
 import { getFavoriteIds, setFavorites } from '../../services/db/favorites'
 import { HeartIcon } from '../common/icons'
 
@@ -14,10 +15,25 @@ export default function FavoriteWorkButton({ tracks }: { tracks: Track[] }) {
   const allFavorite =
     favoriteIds !== undefined && tracks.every((t) => favoriteIds.has(t.id))
 
+  // One click can drop every movement of a work, so the result is always
+  // stated — with a way back when it removed something.
+  async function toggle() {
+    const on = !allFavorite
+    await setFavorites(tracks, on)
+    const count = `${tracks.length} movement${tracks.length === 1 ? '' : 's'}`
+    if (on) {
+      toast(`Favorited — ${count}`)
+      return
+    }
+    toast(`Removed from favorites — ${count}`, {
+      action: { label: 'Undo', onClick: () => void setFavorites(tracks, true) },
+    })
+  }
+
   return (
     <button
       type="button"
-      onClick={() => void setFavorites(tracks, !allFavorite)}
+      onClick={() => void toggle()}
       aria-pressed={allFavorite}
       aria-label={allFavorite ? 'Remove work from favorites' : 'Favorite this work'}
       title={

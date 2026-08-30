@@ -69,6 +69,9 @@ export default function DownloadWorkButton({ tracks }: { tracks: Track[] }) {
       type="button"
       onClick={() => void handleClick()}
       disabled={Boolean(progress)}
+      // The label carries live progress, so announce it as it changes.
+      aria-live="polite"
+      aria-busy={Boolean(progress)}
       title={
         complete
           ? 'All movements are stored offline — click to remove the downloads'

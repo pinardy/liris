@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import ComposerAvatar from '../components/classical/ComposerAvatar'
 import PageHeading from '../components/common/PageHeading'
 import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
@@ -8,11 +7,32 @@ import { composerLifespan, periods, type Period } from '../lib/composers'
 
 export default function Composers() {
   const { data: index, error, loading } = useClassicalIndex()
-  const [period, setPeriod] = useState<Period | 'all'>('all')
+  // In the URL, not component state: opening a composer and coming back used
+  // to reset the filter, and a filtered view wasn't linkable.
+  const [params, setParams] = useSearchParams()
+  const period = (params.get('period') as Period | null) ?? 'all'
+  function setPeriod(next: Period | 'all') {
+    const p = new URLSearchParams(params)
+    if (next === 'all') p.delete('period')
+    else p.set('period', next)
+    setParams(p, { replace: true })
+  }
 
   if (loading) return <Spinner />
-  if (error) return <ErrorMessage error={error} />
-  if (!index) return <EmptyState title="Catalog unavailable" />
+  if (error) {
+    return <ErrorMessage error={error} onRetry={() => window.location.reload()} />
+  }
+  if (!index) {
+    return (
+      <EmptyState
+        title="Catalog unavailable"
+        action={{ label: 'Reload', onClick: () => window.location.reload() }}
+      >
+        The classical catalog couldn't be loaded. Your downloads and imported
+        library still play.
+      </EmptyState>
+    )
+  }
 
   const visible = index.composers.filter(
     (c) => period === 'all' || c.composer?.period === period,
@@ -77,7 +97,7 @@ export default function Composers() {
               <span className="block truncate text-sm font-semibold">
                 {entry.composer?.surname ?? entry.name}
               </span>
-              <span className="block truncate text-[11px] text-zinc-500">
+              <span className="block truncate text-[11px] text-zinc-400">
                 {entry.composer ? composerLifespan(entry.composer) : ''} ·{' '}
                 {entry.works.length} works
               </span>

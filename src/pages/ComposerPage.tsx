@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useParams } from 'react-router'
 import AboutBlurb from '../components/common/AboutBlurb'
+import BackLink from '../components/common/BackLink'
 import Button from '../components/common/Button'
 import { chipClass } from '../components/common/Chip'
 import DetailHeader from '../components/common/DetailHeader'
@@ -28,7 +29,16 @@ export default function ComposerPage() {
 
   if (loading || error) return <AsyncGate loading={loading} error={error} />
   const entry = index?.composers.find((c) => c.slug === slug)
-  if (!entry) return <EmptyState title="Composer not found" />
+  if (!entry) {
+    return (
+      <EmptyState
+        title="Composer not found"
+        action={{ label: 'All composers', to: '/composers' }}
+      >
+        No composer matches this link in the current catalog.
+      </EmptyState>
+    )
+  }
 
   // Group the composer's works by form so a big catalog stays navigable.
   const byForm = new Map<string, typeof entry.works>()
@@ -43,6 +53,7 @@ export default function ComposerPage() {
 
   return (
     <>
+      <BackLink fallback="/composers" fallbackLabel="Composers" />
       <DetailHeader
         artwork={
           <ComposerAvatar

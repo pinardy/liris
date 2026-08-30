@@ -13,6 +13,8 @@ export interface ImportResult {
   skipped: number
   failed: number
   failures: string[]
+  /** True when the user stopped it early; files already imported are kept. */
+  cancelled: boolean
 }
 
 const AUDIO_EXT = /\.(mp3|flac|m4a|aac|ogg|opus|wav|webm)$/i
@@ -29,9 +31,18 @@ function looksLikeAudio(file: File): boolean {
 export async function importFiles(
   fileList: FileList | File[],
   onProgress: (p: ImportProgress) => void,
+  /** Aborts between files — a folder import can be thousands of them, and
+   *  before this there was no way to stop one that was picked by mistake. */
+  signal?: AbortSignal,
 ): Promise<ImportResult> {
   const files = Array.from(fileList).filter(looksLikeAudio)
-  const result: ImportResult = { added: 0, skipped: 0, failed: 0, failures: [] }
+  const result: ImportResult = {
+    added: 0,
+    skipped: 0,
+    failed: 0,
+    failures: [],
+    cancelled: false,
+  }
 
   // Ask the browser to protect our storage from eviction (best-effort).
   if (navigator.storage?.persist) {
@@ -40,6 +51,10 @@ export async function importFiles(
 
   let done = 0
   for (const file of files) {
+    if (signal?.aborted) {
+      result.cancelled = true
+      break
+    }
     onProgress({ total: files.length, done, currentFile: file.name })
     try {
       const fingerprint = `${file.name}:${file.size}`

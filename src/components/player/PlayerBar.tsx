@@ -4,6 +4,7 @@ import { useTrackArtwork } from '../../hooks/useTrackArtwork'
 import { useSwipe } from '../../hooks/useSwipe'
 import { onAppEvent } from '../../lib/appEvents'
 import { workIdForTrack } from '../../lib/classical'
+import { formatDuration } from '../../lib/format'
 import { usePlayerStore, selectCurrentTrack } from '../../player/playerStore'
 import ArtworkImage from '../common/ArtworkImage'
 import {
@@ -29,6 +30,12 @@ import VolumeControl from './VolumeControl'
 export default function PlayerBar() {
   const track = usePlayerStore(selectCurrentTrack)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const isLoading = usePlayerStore((s) => s.isLoading)
+  // Null once playback starts, so this never subscribes the whole bar to the
+  // ~2/sec position ticks — it only carries the pending resume point.
+  const resumeAt = usePlayerStore((s) =>
+    s.restoredFromSession && s.positionSec > 1 ? s.positionSec : null,
+  )
   const shuffle = usePlayerStore((s) => s.shuffle)
   const repeat = usePlayerStore((s) => s.repeat)
   const togglePlay = usePlayerStore((s) => s.togglePlay)
@@ -55,10 +62,10 @@ export default function PlayerBar() {
   if (!track) {
     return (
       <footer className="px-4-safe md:pb-safe flex h-20 items-center gap-3 border-t border-zinc-800 bg-zinc-900">
-        <div className="flex size-12 items-center justify-center rounded bg-zinc-800 text-zinc-600">
+        <div className="flex size-12 items-center justify-center rounded bg-zinc-800 text-zinc-500">
           <MusicNoteIcon />
         </div>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-zinc-400">
           Nothing playing yet — pick a track to start listening.
         </p>
       </footer>
@@ -71,7 +78,8 @@ export default function PlayerBar() {
       {nowPlayingOpen && <NowPlayingSheet onClose={() => setNowPlayingOpen(false)} />}
       <footer
         {...swipe}
-        className="px-4-safe md:pb-safe relative grid h-20 grid-cols-[1fr_auto] items-center gap-2 border-t border-zinc-800 bg-zinc-900 md:grid-cols-[1fr_2fr_1fr] md:gap-4"
+        // z-40 keeps the transport tappable above the queue panel's scrim.
+        className="px-4-safe md:pb-safe relative z-40 grid h-20 grid-cols-[1fr_auto] items-center gap-2 border-t border-zinc-800 bg-zinc-900 md:grid-cols-[1fr_2fr_1fr] md:gap-4"
       >
         {/* No scrubber fits on a phone; show progress as a hairline instead. */}
         <MiniProgress />
@@ -125,9 +133,13 @@ export default function PlayerBar() {
             <button
               type="button"
               onClick={toggleShuffle}
-              aria-label="Toggle shuffle"
+              aria-label={shuffle ? 'Shuffle on' : 'Shuffle off'}
               aria-pressed={shuffle}
-              className={`hidden size-11 items-center justify-center md:flex ${shuffle ? 'text-accent' : 'text-zinc-400 hover:text-white'}`}
+              className={`relative hidden size-11 items-center justify-center md:flex ${
+                shuffle
+                  ? 'text-accent after:absolute after:bottom-1.5 after:h-0.5 after:w-4 after:rounded-full after:bg-accent'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
             >
               <ShuffleIcon width="17" height="17" />
             </button>
@@ -142,11 +154,24 @@ export default function PlayerBar() {
             <button
               type="button"
               onClick={togglePlay}
-              aria-label={isPlaying ? 'Pause' : 'Play'}
+              aria-label={
+                isLoading
+                  ? 'Loading'
+                  : isPlaying
+                    ? 'Pause'
+                    : resumeAt !== null
+                      ? `Resume from ${formatDuration(resumeAt)}`
+                      : 'Play'
+              }
               className="flex size-11 items-center justify-center md:size-11"
             >
               <span className="flex size-9 items-center justify-center rounded-full bg-white text-black transition-transform hover:scale-105">
-                {isPlaying ? (
+                {isLoading ? (
+                  <span
+                    aria-hidden="true"
+                    className="size-4 animate-spin rounded-full border-2 border-black/25 border-t-black"
+                  />
+                ) : isPlaying ? (
                   <PauseIcon width="18" height="18" />
                 ) : (
                   <PlayIcon width="18" height="18" className="translate-x-px" />
@@ -164,8 +189,18 @@ export default function PlayerBar() {
             <button
               type="button"
               onClick={cycleRepeat}
-              aria-label={`Repeat: ${repeat}`}
-              className={`relative hidden size-11 items-center justify-center md:flex ${repeat !== 'off' ? 'text-accent' : 'text-zinc-400 hover:text-white'}`}
+              aria-label={
+                repeat === 'off'
+                  ? 'Repeat off'
+                  : repeat === 'one'
+                    ? 'Repeat this track'
+                    : 'Repeat the queue'
+              }
+              className={`relative hidden size-11 items-center justify-center md:flex ${
+                repeat !== 'off'
+                  ? 'text-accent after:absolute after:bottom-1.5 after:h-0.5 after:w-4 after:rounded-full after:bg-accent'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
             >
               <RepeatIcon width="17" height="17" />
               {repeat === 'one' && (

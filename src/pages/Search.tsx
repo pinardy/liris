@@ -15,6 +15,8 @@ import { usePlayerStore } from '../player/playerStore'
 import { db } from '../services/db/db'
 
 const MAX_LENGTH_OPTIONS = [10, 20, 40] as const
+/** Results beyond this are cut — always disclosed, never silently. */
+const WORK_LIMIT = 60
 
 export default function Search() {
   const [params, setParams] = useSearchParams()
@@ -42,8 +44,10 @@ export default function Search() {
   }
 
   // Local collection: imported files, downloads and playlisted snapshots.
-  // Facets don't apply here — they describe catalog works, not raw tracks.
-  const showCollection = debounced.length > 0 && !anyFacet
+  // Facets describe catalog works, not raw tracks, so they can't filter these
+  // — but silently dropping your own files from the results was worse. They
+  // stay, under a heading that says the filters don't apply to them.
+  const showCollection = debounced.length > 0
   const collectionTracks = useLiveQuery(async () => {
     if (!showCollection) return []
     const all = await db.tracks.toArray()
@@ -72,7 +76,7 @@ export default function Search() {
     ? (index?.performers.find((p) => p.slug === performerSlug)?.works ?? [])
     : (index?.works ?? [])
 
-  const works = enabled
+  const matchingWorks = enabled
     ? baseWorks
         .filter(
           (w) =>
@@ -85,8 +89,9 @@ export default function Search() {
             (!instrumentSlug || detectInstruments(w.title).includes(instrumentSlug)) &&
             (!maxMin || workDuration(w) <= maxMin * 60),
         )
-        .slice(0, 60)
     : []
+  const works = matchingWorks.slice(0, WORK_LIMIT)
+  const truncated = matchingWorks.length > WORK_LIMIT
 
   const nothing =
     enabled &&
@@ -105,14 +110,14 @@ export default function Search() {
       <PageHeading title="Search" />
 
       <div className="relative mb-3 max-w-xl">
-        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
         <input
           type="search"
           value={query}
           onChange={(e) => setParam('q', e.target.value)}
           placeholder="Composers, works, opus numbers…"
           autoFocus
-          className="w-full rounded-full bg-zinc-800 py-2.5 pl-11 pr-4 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/30"
+          className="w-full rounded-full bg-zinc-800 py-2.5 pl-11 pr-4 text-sm text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-white/30"
         />
       </div>
 
@@ -226,7 +231,7 @@ export default function Search() {
                   <span className="block truncate text-sm font-semibold">
                     {entry.name}
                   </span>
-                  <span className="block truncate text-[11px] text-zinc-500">
+                  <span className="block truncate text-[11px] text-zinc-400">
                     {entry.composer ? composerLifespan(entry.composer) : ''} ·{' '}
                     {entry.works.length} works
                   </span>
@@ -241,24 +246,38 @@ export default function Search() {
         <section className="mb-8">
           <h2 className="mb-2 text-lg font-bold">
             Works
-            {anyFacet && (
-              <span className="ml-2 text-sm font-normal text-zinc-400">
-                {works.length === 60 ? 'first 60' : works.length} matching
-                {formSlug && ` · ${formBySlug(formSlug)?.label ?? formSlug}`}
-              </span>
-            )}
+            <span className="ml-2 text-sm font-normal text-zinc-400">
+              {truncated
+                ? `first ${WORK_LIMIT} of ${matchingWorks.length}`
+                : matchingWorks.length}{' '}
+              matching
+              {formSlug && ` · ${formBySlug(formSlug)?.label ?? formSlug}`}
+            </span>
           </h2>
           <div className="flex flex-col">
             {works.map((work) => (
               <WorkRow key={work.id} work={work} showComposer />
             ))}
           </div>
+          {truncated && (
+            <p className="mt-3 text-xs text-zinc-400">
+              {matchingWorks.length - WORK_LIMIT} more match. Narrow the search
+              with a filter above to see them.
+            </p>
+          )}
         </section>
       )}
 
       {collectionTracks && collectionTracks.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-2 text-lg font-bold">From your collection</h2>
+          <h2 className="mb-2 text-lg font-bold">
+            From your collection
+            {anyFacet && (
+              <span className="ml-2 text-sm font-normal text-zinc-400">
+                filters above don't apply here
+              </span>
+            )}
+          </h2>
           <TrackList
             tracks={collectionTracks}
             onPlay={(i) => playQueue(collectionTracks, i)}
@@ -273,6 +292,7 @@ export default function Search() {
               ? `Nothing found for “${query.trim()}”`
               : 'Nothing matches these filters'
           }
+          action={{ label: 'Browse composers', to: '/composers' }}
         >
           {debounced.length > 0
             ? 'Try a different spelling, loosen a filter, or browse by composer instead.'

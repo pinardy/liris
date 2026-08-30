@@ -3,16 +3,20 @@ import { Link } from 'react-router'
 import Button from '../components/common/Button'
 import PageHeading from '../components/common/PageHeading'
 import { DownloadIcon } from '../components/common/icons'
+import { emitAppEvent } from '../lib/appEvents'
 import { formatBytes } from '../lib/format'
 import { toast } from '../lib/toast'
 import { crossfadeSec, setCrossfadeSec } from '../player/audioEngine'
 import { exportBackup, importBackup } from '../services/db/backup'
 import { clearListeningData } from '../services/db/recents'
+import { useConfirm } from '../hooks/useConfirm'
 
 export default function Settings() {
   const [crossfade, setCrossfade] = useState(crossfadeSec)
   const [usage, setUsage] = useState<string>()
+  const [busy, setBusy] = useState<'export' | 'import' | null>(null)
   const importInput = useRef<HTMLInputElement>(null)
+  const { confirm, confirmDialog } = useConfirm()
 
   useEffect(() => {
     void navigator.storage?.estimate?.().then((est) => {
@@ -26,17 +30,28 @@ export default function Settings() {
   }
 
   async function handleExport() {
-    const blob = await exportBackup()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `liris-backup-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-    toast('Backup downloaded')
+    // Reading every table and serialising it can take a moment on a big
+    // library; without a busy state the button looks broken.
+    setBusy('export')
+    try {
+      const blob = await exportBackup()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `liris-backup-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast('Backup downloaded')
+    } catch (err) {
+      console.error('Backup export failed', err)
+      toast('Could not create the backup — try again')
+    } finally {
+      setBusy(null)
+    }
   }
 
   async function handleImport(file: File) {
+    setBusy('import')
     try {
       const r = await importBackup(file)
       toast(
@@ -46,13 +61,21 @@ export default function Settings() {
     } catch (err) {
       console.error('Backup import failed', err)
       toast('Could not import — not a valid Liris backup')
+    } finally {
+      setBusy(null)
     }
   }
 
-  async function handleClearHistory() {
-    if (!confirm('Clear all listening history and stats? This cannot be undone.')) return
-    await clearListeningData()
-    toast('Listening history cleared')
+  function handleClearHistory() {
+    confirm({
+      title: 'Clear listening history',
+      message:
+        'Your play history and the stats built from it will be deleted. Playlists, favorites and downloads are untouched. This cannot be undone.',
+      confirmLabel: 'Clear history',
+      onConfirm: () => {
+        void clearListeningData().then(() => toast('Listening history cleared'))
+      },
+    })
   }
 
   return (
@@ -81,14 +104,25 @@ export default function Settings() {
               onChange={(e) => handleCrossfade(Number(e.target.value))}
               className="h-1 w-full cursor-pointer appearance-none rounded-full bg-zinc-600 accent-accent"
             />
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="mt-2 text-xs text-zinc-400">
               Blends one track into the next when they belong to different works.
               Movements of a single work always segue gaplessly.
             </p>
           </div>
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-zinc-400">
             The equalizer and sleep timer live in the player bar while music is
             playing.
+          </p>
+          <p className="mt-2 text-xs text-zinc-400">
+            <button
+              type="button"
+              onClick={() => emitAppEvent('show-shortcuts')}
+              className="underline-offset-2 hover:text-white hover:underline"
+            >
+              Keyboard shortcuts
+            </button>{' '}
+            — or press <kbd className="rounded bg-zinc-800 px-1 font-mono">?</kbd>{' '}
+            anywhere.
           </p>
         </section>
 
@@ -98,20 +132,22 @@ export default function Settings() {
             <p className="mb-4 text-sm text-zinc-400">
               Your playlists, smart playlists and favorites live only in this
               browser. Export a backup to keep them safe or move them to another
-              device. Imported backups merge in — nothing is deleted. Local audio
-              files aren't included.
+              device. Importing adds what's missing; a playlist saved from this
+              same library is updated to the backup's version. Local audio files
+              aren't included.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => void handleExport()}>
+              <Button size="sm" onClick={() => void handleExport()} disabled={busy !== null}>
                 <DownloadIcon width="16" height="16" />
-                Export backup
+                {busy === 'export' ? 'Preparing…' : 'Export backup'}
               </Button>
               <Button
                 variant="subtle"
                 size="sm"
                 onClick={() => importInput.current?.click()}
+                disabled={busy !== null}
               >
-                Import backup
+                {busy === 'import' ? 'Restoring…' : 'Import backup'}
               </Button>
               <input
                 ref={importInput}
@@ -126,7 +162,7 @@ export default function Settings() {
               />
             </div>
             {usage && (
-              <p className="mt-4 text-xs text-zinc-500">
+              <p className="mt-4 text-xs text-zinc-400">
                 {usage} stored on this device ·{' '}
                 <Link to="/downloads" className="underline-offset-2 hover:text-white hover:underline">
                   manage downloads
@@ -145,7 +181,7 @@ export default function Settings() {
             </p>
             <button
               type="button"
-              onClick={() => void handleClearHistory()}
+              onClick={handleClearHistory}
               className="rounded-full border border-red-900/60 px-4 py-2 text-sm font-medium text-red-300 transition-colors hover:border-red-700 hover:text-red-200"
             >
               Clear listening history
@@ -172,6 +208,7 @@ export default function Settings() {
           </p>
         </section>
       </div>
+      {confirmDialog}
     </>
   )
 }

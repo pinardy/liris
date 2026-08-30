@@ -89,7 +89,7 @@ export default function SmartPlaylistModal({
           onChange={(e) => setName(e.target.value)}
           placeholder="Name — e.g. Short Baroque concertos"
           autoFocus
-          className="w-full rounded-md bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/30"
+          className="w-full rounded-md bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-white/30"
         />
 
         <p className={sectionLabel}>Period</p>
@@ -158,7 +158,7 @@ export default function SmartPlaylistModal({
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-3">
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-zinc-400">
             {matchCount !== null &&
               `${matchCount} work${matchCount === 1 ? '' : 's'} match`}
           </span>

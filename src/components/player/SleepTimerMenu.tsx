@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { usePlayerStore } from '../../player/playerStore'
 import { MoonIcon } from '../common/icons'
 
@@ -13,6 +14,7 @@ export default function SleepTimerMenu() {
   const [open, setOpen] = useState(false)
   // A mobile back swipe closes the menu while it's open.
   useBackDismiss(() => setOpen(false), open)
+  useEscapeKey(open, () => setOpen(false))
 
   const active = sleepTimerEndsAt !== null || sleepAtTrackEnd || sleepAtWorkEnd
   const remainingMin =

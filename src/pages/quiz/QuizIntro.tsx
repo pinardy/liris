@@ -30,7 +30,7 @@ function Segmented<T extends string>({
 }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
         {label}
       </p>
       <div className="inline-flex gap-1 rounded-full bg-zinc-800 p-1">

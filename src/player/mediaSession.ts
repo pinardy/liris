@@ -9,6 +9,35 @@ import { resolveArtworkUrl } from './resolveSource'
 let lastArtworkObjectUrl: string | null = null
 let handlersRegistered = false
 
+/**
+ * Register the media-key/lock-screen handlers. Safe to call repeatedly, and
+ * called BEFORE the first successful play (from a load, and after a session
+ * restore) — otherwise hardware keys are dead until audio has already
+ * started, which is exactly when a user reaches for them.
+ */
+export function ensureMediaHandlers(): void {
+  if (!('mediaSession' in navigator)) return
+  registerHandlers()
+}
+
+/** Mirror the real transport state; without this, several platforms draw the
+ *  wrong play/pause glyph on the lock screen. */
+export function setPlaybackState(state: MediaSessionPlaybackState): void {
+  if (!('mediaSession' in navigator)) return
+  navigator.mediaSession.playbackState = state
+}
+
+/** Drop the lock-screen entry entirely (the queue was emptied). */
+export function clearMediaSession(): void {
+  if (!('mediaSession' in navigator)) return
+  navigator.mediaSession.metadata = null
+  navigator.mediaSession.playbackState = 'none'
+  if (lastArtworkObjectUrl) {
+    URL.revokeObjectURL(lastArtworkObjectUrl)
+    lastArtworkObjectUrl = null
+  }
+}
+
 export async function updateMediaSession(track: Track): Promise<void> {
   if (!('mediaSession' in navigator)) return
   registerHandlers()
@@ -25,7 +54,9 @@ export async function updateMediaSession(track: Track): Promise<void> {
     title: track.title,
     artist: track.artist,
     album: track.album ?? '',
-    artwork: artworkUrl ? [{ src: artworkUrl, sizes: '512x512' }] : [],
+    // No `sizes`: the real dimensions are unknown here, and claiming 512×512
+    // for a smaller image makes platforms upscale it badly.
+    artwork: artworkUrl ? [{ src: artworkUrl }] : [],
   })
 }
 
@@ -46,8 +77,21 @@ function registerHandlers(): void {
   void import('./playerStore').then(({ usePlayerStore }) => {
     const actions = () => usePlayerStore.getState()
     const ms = navigator.mediaSession
-    ms.setActionHandler('play', () => actions().togglePlay())
-    ms.setActionHandler('pause', () => actions().togglePlay())
+    // Explicitly directional, never a toggle: the OS can send a duplicate
+    // 'play' (headset resume, end of a call, some Android ROMs), and a
+    // toggling handler would pause the music instead.
+    ms.setActionHandler('play', () => {
+      const s = actions()
+      if (!s.isPlaying) s.togglePlay()
+    })
+    ms.setActionHandler('pause', () => {
+      const s = actions()
+      if (s.isPlaying) s.togglePlay()
+    })
+    ms.setActionHandler('stop', () => {
+      const s = actions()
+      if (s.isPlaying) s.togglePlay()
+    })
     ms.setActionHandler('previoustrack', () => actions().prev())
     ms.setActionHandler('nexttrack', () => actions().next())
     ms.setActionHandler('seekto', (e) => {

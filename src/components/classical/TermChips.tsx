@@ -38,7 +38,7 @@ export default function TermChips({ texts }: { texts: string[] }) {
       {open && (
         <p className="mt-3 max-w-xl rounded-lg bg-zinc-900/70 p-3 text-sm text-zinc-300">
           <span className="font-semibold capitalize text-white">{open.term}</span>
-          <span className="text-zinc-500"> · </span>
+          <span className="text-zinc-400"> · </span>
           {open.definition}
         </p>
       )}

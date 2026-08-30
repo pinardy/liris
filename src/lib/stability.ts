@@ -19,6 +19,8 @@ function notify() {
 
 /** Reload-loop guard for the stale-chunk recovery below. */
 const RELOAD_FLAG = 'chunk-reload-attempted'
+/** Read (and cleared) by PwaUpdatePrompt so the reload gets explained. */
+const RELOADED_FOR_UPDATE = 'reloaded-for-update'
 
 export function initStabilityNets(): void {
   window.addEventListener('unhandledrejection', (e) => {
@@ -39,6 +41,9 @@ export function initStabilityNets(): void {
   window.addEventListener('vite:preloadError', (e) => {
     if (sessionStorage.getItem(RELOAD_FLAG)) return // let it surface normally
     sessionStorage.setItem(RELOAD_FLAG, '1')
+    // The reload stops playback, so leave a note for the next boot to explain
+    // why the music stopped rather than letting it look like a crash.
+    sessionStorage.setItem(RELOADED_FOR_UPDATE, '1')
     e.preventDefault()
     window.location.reload()
   })

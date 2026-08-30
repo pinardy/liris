@@ -22,6 +22,36 @@ body {
 }
 
 /*
+ * Keyboard focus, app-wide. Written with :where() so it carries zero
+ * specificity: any element that defines its own focus treatment (the inputs
+ * using focus:ring-*) still wins, and everything else — every icon button in
+ * the player, every menu item, every tab — stops being invisible to keyboard
+ * users on a near-black background.
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Decorative motion stops outright. Spinners are exempted rather than
+     frozen — they are the only signal that a load is still running — but slow
+     right down. */
+  .animate-pulse {
+    animation: none !important;
+  }
+  .animate-spin {
+    animation-duration: 2s !important;
+  }
+}
+
+/*
  * The viewport is `viewport-fit=cover`, so the page draws behind the notch and
  * the home indicator. These utilities pad the fixed chrome back out of those
  * regions; on devices without insets every env() resolves to 0 and nothing
@@ -57,6 +87,48 @@ body {
   padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
   padding-left: calc(1.5rem + env(safe-area-inset-left));
   padding-right: calc(1.5rem + env(safe-area-inset-right));
+}
+
+/*
+ * Seek slider: the input itself is a tall touch target (its height comes from
+ * utility classes); only the track drawn inside it stays slim. appearance-none
+ * removes the native track so --range-fill — set inline by SeekBar — can paint
+ * played / buffered / rest as a single gradient.
+ */
+input[type='range'].player-range {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+input[type='range'].player-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--range-fill, #3f3f46);
+}
+
+input[type='range'].player-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -4px; /* center a 12px thumb on the 4px track */
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: #fff;
+}
+
+input[type='range'].player-range::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--range-fill, #3f3f46);
+}
+
+input[type='range'].player-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 9999px;
+  background: #fff;
 }
 
 ::-webkit-scrollbar {

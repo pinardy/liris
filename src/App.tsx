@@ -1,10 +1,13 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Routes, Route, useLocation } from 'react-router'
 import ErrorBoundary from './components/common/ErrorBoundary'
+import { onAppEvent } from './lib/appEvents'
 import ShortcutsHelp from './components/common/ShortcutsHelp'
 import Toaster from './components/common/Toaster'
 import Sidebar from './components/layout/Sidebar'
 import MobileTabBar from './components/layout/MobileTabBar'
+import OfflineBanner from './components/layout/OfflineBanner'
+import PwaUpdatePrompt from './components/layout/PwaUpdatePrompt'
 import ScrollMemory from './components/layout/ScrollMemory'
 import LaunchHandler from './components/layout/LaunchHandler'
 import PlayerBar from './components/player/PlayerBar'
@@ -28,6 +31,7 @@ import WorkPage from './pages/WorkPage'
 import BrowsePage from './pages/BrowsePage'
 import CollectionPage from './pages/CollectionPage'
 import Contemporary from './pages/Contemporary'
+import NotFound from './pages/NotFound'
 import Settings from './pages/Settings'
 
 /** Shown in place of a page that threw; playback keeps running underneath. */
@@ -62,14 +66,29 @@ function App() {
   const [helpOpen, setHelpOpen] = useState(false)
   const toggleHelp = useCallback(() => setHelpOpen((o) => !o), [])
   useKeyboardShortcuts(toggleHelp)
+  // Lets Settings (and anything else) open the sheet without prop drilling.
+  useEffect(() => onAppEvent('show-shortcuts', () => setHelpOpen(true)), [])
   const mainRef = useRef<HTMLElement>(null)
   const location = useLocation()
   return (
     <div className="flex h-full flex-col">
+      {/* Off-screen until focused: lets a keyboard user skip the nav, which is
+          otherwise ~10 links to tab through on every page. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-black"
+      >
+        Skip to content
+      </a>
       {/* Landscape notches eat into the sides; inset the whole content area. */}
       <div className="px-safe flex min-h-0 flex-1">
-        <Sidebar />
-        <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto px-4 py-6 md:px-8">
+        <Sidebar onShowShortcuts={toggleHelp} />
+        <main
+          id="main"
+          ref={mainRef}
+          tabIndex={-1}
+          className="min-w-0 flex-1 overflow-y-auto px-4 py-6 focus:outline-none md:px-8"
+        >
           <ScrollMemory container={mainRef} />
           {/* Keyed by location so navigating away from a crashed page always
               gets a fresh boundary — the Go Home link works with no reset. */}
@@ -98,10 +117,13 @@ function App() {
             <Route path="/smart/:id" element={<SmartPlaylistPage />} />
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
           </ErrorBoundary>
         </main>
       </div>
+      <PwaUpdatePrompt />
+      <OfflineBanner />
       <PlayerBar />
       <MobileTabBar />
       <Toaster />

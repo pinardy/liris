@@ -1,11 +1,12 @@
-import type { ReactNode } from 'react'
+import { useContext, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { Track } from '../../types/model'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
 import { formatDuration } from '../../lib/format'
 import { usePlayerStore } from '../../player/playerStore'
 import ArtworkImage from '../common/ArtworkImage'
-import { PlayIcon } from '../common/icons'
+import { DownloadIcon, PlayIcon } from '../common/icons'
+import { DownloadedIdsContext } from './favoritesContext'
 
 interface Props {
   track: Track
@@ -20,6 +21,9 @@ export default function TrackRow({ track, index, onPlay, actions }: Props) {
   // the two affected rows — not the page and every list on it.
   const isCurrent = usePlayerStore((s) => s.queue[s.currentIndex]?.id === track.id)
   const artworkUrl = useTrackArtwork(track)
+  // Which rows will still play with no network — the whole point of the
+  // download feature, and previously only discoverable through a menu label.
+  const isDownloaded = useContext(DownloadedIdsContext)?.has(track.id) ?? false
   const artistLink =
     track.source === 'jamendo' && track.jamendo?.artistId
       ? `/artist/${track.jamendo.artistId}`
@@ -76,6 +80,14 @@ export default function TrackRow({ track, index, onPlay, actions }: Props) {
       </span>
 
       <span className="flex items-center gap-2">
+        {isDownloaded && (
+          // The icon itself is aria-hidden by design, so the label rides
+          // alongside it rather than on it.
+          <span className="flex shrink-0 items-center text-accent" title="Available offline">
+            <DownloadIcon width="13" height="13" />
+            <span className="sr-only">Available offline</span>
+          </span>
+        )}
         {actions}
         <span className="text-sm tabular-nums text-zinc-400">
           {formatDuration(track.durationSec)}

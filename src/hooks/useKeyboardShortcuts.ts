@@ -35,6 +35,9 @@ export function useKeyboardShortcuts(onToggleHelp: () => void): void {
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (isTypingTarget(e.target) || e.ctrlKey || e.metaKey || e.altKey) return
+      // A modal surface owns the keyboard while it is open. (The queue panel
+      // is deliberately not aria-modal, so Q and Space still work there.)
+      if (document.querySelector('[aria-modal="true"]')) return
 
       // Key (not code) for the two layout-dependent ones.
       if (e.key === '?') {

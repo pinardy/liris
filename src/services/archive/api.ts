@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '../../lib/fetchWithTimeout'
 import type { Track } from '../../types/model'
 import type { ParserKind } from './parse'
 
@@ -122,7 +123,7 @@ export interface ArchiveAudioFile {
  * movement order, so a name sort keeps movements sequential.
  */
 export async function fetchArchiveFiles(itemId: string): Promise<ArchiveAudioFile[]> {
-  const res = await fetch(`https://archive.org/metadata/${itemId}`)
+  const res = await fetchWithTimeout(`https://archive.org/metadata/${itemId}`)
   if (!res.ok) throw new Error(`archive.org request failed (HTTP ${res.status})`)
   const body = (await res.json()) as ArchiveMetadataResponse
   return (body.files ?? [])
@@ -143,7 +144,7 @@ export async function getArchiveCollectionTracks(
   const collection = classicalCollections.find((c) => c.itemId === itemId)
   if (!collection) return null
 
-  const res = await fetch(`https://archive.org/metadata/${itemId}`)
+  const res = await fetchWithTimeout(`https://archive.org/metadata/${itemId}`)
   if (!res.ok) throw new Error(`archive.org request failed (HTTP ${res.status})`)
   const body = (await res.json()) as ArchiveMetadataResponse
 

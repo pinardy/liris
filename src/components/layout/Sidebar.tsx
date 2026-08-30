@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router'
 import { navItems } from './navItems'
 
-export default function Sidebar() {
+export default function Sidebar({ onShowShortcuts }: { onShowShortcuts: () => void }) {
   return (
     <aside className="hidden w-60 shrink-0 flex-col gap-1 border-r border-zinc-800 bg-black p-4 md:flex">
       <div className="mb-6 flex items-center gap-2.5 px-2">
@@ -14,12 +14,12 @@ export default function Sidebar() {
         />
         <div>
           <div className="text-lg font-bold leading-none">Liris</div>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-zinc-400">
             Classical
           </p>
         </div>
       </div>
-      <nav className="flex flex-1 flex-col gap-1">
+      <nav aria-label="Main" className="flex flex-1 flex-col gap-1">
         {navItems.map(({ to, label, icon: ItemIcon }) => (
           <NavLink
             key={to}
@@ -43,7 +43,7 @@ export default function Sidebar() {
             to="/history"
             className={({ isActive }) =>
               `px-3 text-xs font-medium transition-colors ${
-                isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+                isActive ? 'text-white' : 'text-zinc-400 hover:text-white'
               }`
             }
           >
@@ -53,7 +53,7 @@ export default function Sidebar() {
             to="/bookmarks"
             className={({ isActive }) =>
               `px-3 text-xs font-medium transition-colors ${
-                isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+                isActive ? 'text-white' : 'text-zinc-400 hover:text-white'
               }`
             }
           >
@@ -63,7 +63,7 @@ export default function Sidebar() {
             to="/downloads"
             className={({ isActive }) =>
               `px-3 text-xs font-medium transition-colors ${
-                isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+                isActive ? 'text-white' : 'text-zinc-400 hover:text-white'
               }`
             }
           >
@@ -73,7 +73,7 @@ export default function Sidebar() {
             to="/contemporary"
             className={({ isActive }) =>
               `px-3 text-xs font-medium transition-colors ${
-                isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+                isActive ? 'text-white' : 'text-zinc-400 hover:text-white'
               }`
             }
           >
@@ -83,12 +83,24 @@ export default function Sidebar() {
             to="/settings"
             className={({ isActive }) =>
               `px-3 text-xs font-medium transition-colors ${
-                isActive ? 'text-white' : 'text-zinc-500 hover:text-white'
+                isActive ? 'text-white' : 'text-zinc-400 hover:text-white'
               }`
             }
           >
             Settings
           </NavLink>
+          {/* The shortcuts sheet was previously reachable only by guessing
+              '?' — nothing in the UI pointed at it. */}
+          <button
+            type="button"
+            onClick={onShowShortcuts}
+            className="px-3 text-left text-xs font-medium text-zinc-400 transition-colors hover:text-white"
+          >
+            Keyboard shortcuts{' '}
+            <kbd className="ml-1 rounded bg-zinc-800 px-1 font-mono text-[10px] text-zinc-300">
+              ?
+            </kbd>
+          </button>
         </div>
       </nav>
     </aside>

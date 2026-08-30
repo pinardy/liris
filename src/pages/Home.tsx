@@ -145,7 +145,7 @@ export default function Home() {
                   <span className="mt-2 block truncate text-sm font-semibold">
                     {entry.composer?.surname ?? entry.name}
                   </span>
-                  <span className="block text-[11px] text-zinc-500">
+                  <span className="block text-[11px] text-zinc-400">
                     {entry.works.length} works
                   </span>
                 </Link>
@@ -166,7 +166,7 @@ export default function Home() {
                   >
                     <p className="font-bold">{p.name}</p>
                     <p className="text-xs text-zinc-400">{p.range}</p>
-                    <p className="mt-2 text-xs text-zinc-500">
+                    <p className="mt-2 text-xs text-zinc-400">
                       {index.byPeriod.get(p.name)?.length} works
                     </p>
                   </Link>
@@ -182,7 +182,7 @@ export default function Home() {
               label: (
                 <>
                   {f.label}
-                  <span className="ml-1.5 text-xs text-zinc-500">
+                  <span className="ml-1.5 text-xs text-zinc-400">
                     {index.byForm.get(f.slug)?.length}
                   </span>
                 </>
@@ -198,7 +198,7 @@ export default function Home() {
               label: (
                 <>
                   {i.label}
-                  <span className="ml-1.5 text-xs text-zinc-500">
+                  <span className="ml-1.5 text-xs text-zinc-400">
                     {index.byInstrument.get(i.slug)?.length}
                   </span>
                 </>
@@ -241,7 +241,7 @@ export default function Home() {
               label: (
                 <>
                   {p.name}
-                  <span className="ml-1.5 text-xs text-zinc-500">
+                  <span className="ml-1.5 text-xs text-zinc-400">
                     {p.role !== 'artist' && `${roleLabels[p.role]} · `}
                     {p.works.length}
                   </span>
@@ -312,7 +312,7 @@ export default function Home() {
       )}
 
       {index && index.composers.length > 0 && (
-        <p className="pb-4 text-xs text-zinc-600">
+        <p className="pb-4 text-xs text-zinc-500">
           Earliest composer:{' '}
           {index.composers[0].composer
             ? `${index.composers[0].name} (${composerLifespan(index.composers[0].composer)})`

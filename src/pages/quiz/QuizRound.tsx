@@ -44,7 +44,7 @@ export default function QuizRound({
     <div className="mx-auto max-w-xl">
       <div className="mb-6 flex items-baseline justify-between">
         <h1 className="text-xl font-bold">
-          Round {roundNo + 1} <span className="text-zinc-500">of {total}</span>
+          Round {roundNo + 1} <span className="text-zinc-400">of {total}</span>
         </h1>
         <p className="text-sm tabular-nums text-zinc-400">Score {score}</p>
       </div>
@@ -59,7 +59,14 @@ export default function QuizRound({
             <PlayButton onClick={onReplay} aria-label="Replay clip" />
             <div className="min-w-0 flex-1">
               <p className="mb-2 text-sm font-medium text-zinc-300">{question}</p>
-              <div className="h-1.5 overflow-hidden rounded-full bg-zinc-700">
+              <div
+                role="progressbar"
+                aria-label="Clip progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(clipProgress * 100)}
+                className="h-1.5 overflow-hidden rounded-full bg-zinc-700"
+              >
                 <div
                   className="h-full rounded-full bg-accent transition-[width] duration-300 ease-linear"
                   style={{ width: `${clipProgress * 100}%` }}
@@ -121,7 +128,7 @@ export default function QuizRound({
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold">{c.label}</span>
                 {c.sublabel && (
-                  <span className="block truncate text-xs text-zinc-500">{c.sublabel}</span>
+                  <span className="block truncate text-xs text-zinc-400">{c.sublabel}</span>
                 )}
               </span>
             </button>

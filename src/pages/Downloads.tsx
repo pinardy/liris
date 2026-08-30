@@ -9,6 +9,7 @@ import { useTrackArtwork } from '../hooks/useTrackArtwork'
 import { workIdForTrack } from '../lib/classical'
 import { formatBytes, formatDuration } from '../lib/format'
 import { toast } from '../lib/toast'
+import { useConfirm } from '../hooks/useConfirm'
 import { usePlayerStore } from '../player/playerStore'
 import {
   getDownloads,
@@ -57,10 +58,10 @@ function DownloadRow({
           {track.artist}
         </p>
       </div>
-      <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+      <span className="shrink-0 text-xs tabular-nums text-zinc-400">
         {formatDuration(track.durationSec)}
       </span>
-      <span className="w-16 shrink-0 text-right text-xs tabular-nums text-zinc-500">
+      <span className="w-16 shrink-0 text-right text-xs tabular-nums text-zinc-400">
         {formatBytes(bytes)}
       </span>
       <button
@@ -68,7 +69,9 @@ function DownloadRow({
         onClick={onRemove}
         aria-label={`Remove download of ${track.title}`}
         title="Remove download"
-        className="invisible shrink-0 text-zinc-500 hover:text-white group-hover:visible"
+        // Visible on touch (no hover to reveal it), and on desktop revealed by
+        // hover OR keyboard focus so it can't be focused while invisible.
+        className="flex size-11 shrink-0 items-center justify-center text-zinc-400 hover:text-white md:invisible md:size-8 md:group-focus-within:visible md:group-hover:visible"
       >
         <CloseIcon width="16" height="16" />
       </button>
@@ -79,6 +82,7 @@ function DownloadRow({
 export default function Downloads() {
   const data = useLiveQuery(getDownloads, [])
   const playQueue = usePlayerStore((s) => s.playQueue)
+  const { confirm, confirmDialog } = useConfirm()
 
   if (data === undefined) return <Spinner />
   const { entries, orphanBytes } = data
@@ -90,11 +94,19 @@ export default function Downloads() {
     toast(`Removed download — ${entry.track.title}`)
   }
 
-  async function handleRemoveAll() {
-    if (!confirm(`Remove all ${entries.length} downloads (${formatBytes(totalBytes)})?`))
-      return
-    const removed = await removeAllDownloads()
-    toast(`Removed ${removed} download${removed === 1 ? '' : 's'}`)
+  function handleRemoveAll() {
+    confirm({
+      title: 'Remove all downloads',
+      message: `All ${entries.length} downloaded track${
+        entries.length === 1 ? '' : 's'
+      } will be deleted from this device, freeing ${formatBytes(totalBytes)}. They stay playable online, and you can download them again.`,
+      confirmLabel: 'Remove all',
+      onConfirm: () => {
+        void removeAllDownloads().then((removed) =>
+          toast(`Removed ${removed} download${removed === 1 ? '' : 's'}`),
+        )
+      },
+    })
   }
 
   return (
@@ -106,7 +118,7 @@ export default function Downloads() {
               <PlayIcon width="14" height="14" />
               Play all
             </Button>
-            <Button variant="subtle" size="sm" onClick={() => void handleRemoveAll()}>
+            <Button variant="subtle" size="sm" onClick={handleRemoveAll}>
               Remove all
             </Button>
           </div>
@@ -118,7 +130,7 @@ export default function Downloads() {
           {entries.length} track{entries.length === 1 ? '' : 's'} ·{' '}
           {formatBytes(totalBytes)} stored for offline listening
           {orphanBytes > 0 && (
-            <span className="text-zinc-500">
+            <span className="text-zinc-400">
               {' '}
               (includes {formatBytes(orphanBytes)} from removed tracks — “Remove
               all” reclaims it)
@@ -139,11 +151,15 @@ export default function Downloads() {
           ))}
         </div>
       ) : (
-        <EmptyState title="No downloads yet">
+        <EmptyState
+          title="No downloads yet"
+          action={{ label: 'Browse composers', to: '/composers' }}
+        >
           Use the “···” menu on any track — or “Download” on a work page — to keep
           music offline. It shows up here.
         </EmptyState>
       )}
+      {confirmDialog}
     </>
   )
 }

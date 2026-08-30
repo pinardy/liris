@@ -4,9 +4,12 @@ interface Handlers {
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
   onSwipeUp?: () => void
+  /** Only attach this on a surface that doesn't scroll vertically — a
+   *  full-screen sheet's header or artwork, never a scrolling list. */
+  onSwipeDown?: () => void
 }
 
-export type SwipeDirection = 'left' | 'right' | 'up' | null
+export type SwipeDirection = 'left' | 'right' | 'up' | 'down' | null
 
 export interface TouchPoint {
   x: number
@@ -26,7 +29,11 @@ const AXIS_RATIO = 2
  * drag, or too diagonal to be sure. Pure, so the thresholds can be tested
  * without a DOM.
  */
-export function classifySwipe(from: TouchPoint, to: TouchPoint): SwipeDirection {
+export function classifySwipe(
+  from: TouchPoint,
+  to: TouchPoint,
+  { allowDown = false }: { allowDown?: boolean } = {},
+): SwipeDirection {
   if (to.t - from.t > MAX_DURATION_MS) return null
   const dx = to.x - from.x
   const dy = to.y - from.y
@@ -37,8 +44,12 @@ export function classifySwipe(from: TouchPoint, to: TouchPoint): SwipeDirection 
     // Swiping left moves forward, matching the direction cards travel.
     return dx < 0 ? 'left' : 'right'
   }
-  // Downward is deliberately unhandled: it belongs to page scroll.
-  if (absY > absX * AXIS_RATIO && -dy > THRESHOLD_PX) return 'up'
+  if (absY > absX * AXIS_RATIO) {
+    if (-dy > THRESHOLD_PX) return 'up'
+    // Downward counts only where the caller opted in (a sheet you can flick
+    // away); everywhere else it belongs to page scroll.
+    if (allowDown && dy > THRESHOLD_PX) return 'down'
+  }
   return null
 }
 
@@ -48,7 +59,12 @@ export function classifySwipe(from: TouchPoint, to: TouchPoint): SwipeDirection 
  * Deliberately passive — the handlers never call preventDefault, so vertical
  * page scrolling is untouched.
  */
-export function useSwipe({ onSwipeLeft, onSwipeRight, onSwipeUp }: Handlers) {
+export function useSwipe({
+  onSwipeLeft,
+  onSwipeRight,
+  onSwipeUp,
+  onSwipeDown,
+}: Handlers) {
   const start = useRef<TouchPoint | null>(null)
 
   return {
@@ -61,10 +77,15 @@ export function useSwipe({ onSwipeLeft, onSwipeRight, onSwipeUp }: Handlers) {
       start.current = null
       if (!from) return
       const t = e.changedTouches[0]
-      const direction = classifySwipe(from, { x: t.clientX, y: t.clientY, t: Date.now() })
+      const direction = classifySwipe(
+        from,
+        { x: t.clientX, y: t.clientY, t: Date.now() },
+        { allowDown: Boolean(onSwipeDown) },
+      )
       if (direction === 'left') onSwipeLeft?.()
       else if (direction === 'right') onSwipeRight?.()
       else if (direction === 'up') onSwipeUp?.()
+      else if (direction === 'down') onSwipeDown?.()
     },
   }
 }
