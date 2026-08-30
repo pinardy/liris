@@ -22,6 +22,36 @@ body {
 }
 
 /*
+ * Keyboard focus, app-wide. Written with :where() so it carries zero
+ * specificity: any element that defines its own focus treatment (the inputs
+ * using focus:ring-*) still wins, and everything else — every icon button in
+ * the player, every menu item, every tab — stops being invisible to keyboard
+ * users on a near-black background.
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Decorative motion stops outright. Spinners are exempted rather than
+     frozen — they are the only signal that a load is still running — but slow
+     right down. */
+  .animate-pulse {
+    animation: none !important;
+  }
+  .animate-spin {
+    animation-duration: 2s !important;
+  }
+}
+
+/*
  * The viewport is `viewport-fit=cover`, so the page draws behind the notch and
  * the home indicator. These utilities pad the fixed chrome back out of those
  * regions; on devices without insets every env() resolves to 0 and nothing
