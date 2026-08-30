@@ -5,13 +5,17 @@ import type { Track } from '../types/model'
 // The store drives a DOM audio engine; these tests cover the state machine,
 // so the engine is mocked and every call into it is observable.
 vi.mock('./audioEngine', () => ({
-  loadAndPlay: vi.fn(),
+  loadAndPlay: vi.fn(async () => {}),
   play: vi.fn(),
   pause: vi.fn(),
+  stop: vi.fn(),
   seek: vi.fn(),
   setVolume: vi.fn(),
   setSleepFade: vi.fn(),
   setPlaybackRate: vi.fn(),
+  // Null = the engine holds nothing, which is exactly the restored-session
+  // state; individual tests override it.
+  loadedTrackId: vi.fn(() => null as string | null),
 }))
 // recordPlay would hit IndexedDB, which jsdom doesn't provide.
 vi.mock('../services/db/recents', () => ({ recordPlay: vi.fn(async () => {}) }))
@@ -87,6 +91,70 @@ describe('queue editing', () => {
     usePlayerStore.getState().moveInQueue(0, 2)
     s = usePlayerStore.getState()
     expect(s.queue[s.currentIndex].id).toBe('b')
+  })
+})
+
+describe('restored session', () => {
+  // A long movement, so a mid-track resume position is realistic.
+  const long = (id: string) => ({ ...track(id), durationSec: 1200 })
+  const saved = {
+    queue: [long('a'), long('b')],
+    currentIndex: 1,
+    originalQueue: null,
+    positionSec: 620,
+    shuffle: false,
+    repeat: 'off' as const,
+    radioMode: false,
+  }
+
+  it('scrubbing before playback moves the pending position, not the engine', () => {
+    usePlayerStore.getState().restoreSession(saved)
+    expect(usePlayerStore.getState().restoredFromSession).toBe(true)
+
+    // The engine holds no track yet: handing this to an empty audio element
+    // would clamp to 0 and wipe the 10-minute resume point.
+    usePlayerStore.getState().seek(300)
+    expect(engine.seek).not.toHaveBeenCalled()
+    expect(usePlayerStore.getState().positionSec).toBe(300)
+  })
+
+  it('clamps a pending seek to the track duration and never below zero', () => {
+    usePlayerStore.getState().restoreSession(saved)
+    usePlayerStore.getState().seek(99_999)
+    expect(usePlayerStore.getState().positionSec).toBe(1200) // track duration
+    usePlayerStore.getState().seek(-5)
+    expect(usePlayerStore.getState().positionSec).toBe(0)
+  })
+
+  it('seeks through to the engine once it holds the current track', () => {
+    usePlayerStore.getState().playQueue([track('a')], 0)
+    vi.mocked(engine.loadedTrackId).mockReturnValue('a')
+    usePlayerStore.getState().seek(42)
+    expect(engine.seek).toHaveBeenCalledWith(42)
+    vi.mocked(engine.loadedTrackId).mockReturnValue(null)
+  })
+
+  it('resuming play loads the track and seeks to the pending position', async () => {
+    usePlayerStore.getState().restoreSession(saved)
+    usePlayerStore.getState().togglePlay()
+    expect(engine.loadAndPlay).toHaveBeenCalledWith(saved.queue[1])
+    await Promise.resolve()
+    expect(engine.seek).toHaveBeenCalledWith(620)
+    expect(usePlayerStore.getState().restoredFromSession).toBe(false)
+  })
+
+  it('a restore with no meaningful position is not flagged as a resume', () => {
+    usePlayerStore.getState().restoreSession({ ...saved, positionSec: 0 })
+    expect(usePlayerStore.getState().restoredFromSession).toBe(false)
+  })
+
+  it('restart-from-previous goes through the same guard, not the empty element', () => {
+    usePlayerStore.getState().restoreSession(saved)
+    // positionSec is 620 (> 3), so prev() restarts the track rather than
+    // stepping back — and must do it without consulting the unloaded element.
+    usePlayerStore.getState().prev()
+    expect(engine.seek).not.toHaveBeenCalled()
+    expect(usePlayerStore.getState().positionSec).toBe(0)
   })
 })
 

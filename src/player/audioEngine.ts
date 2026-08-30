@@ -1,6 +1,12 @@
 import { isSameWork } from '../lib/classical'
 import type { Track } from '../types/model'
-import { updateMediaSession, updatePositionState } from './mediaSession'
+import {
+  clearMediaSession,
+  ensureMediaHandlers,
+  setPlaybackState,
+  updateMediaSession,
+  updatePositionState,
+} from './mediaSession'
 import { usePlayerStore } from './playerStore'
 import { nextIndex } from './queue'
 import { resolvePlayableUrl } from './resolveSource'
@@ -105,14 +111,33 @@ let currentLoad: {
   preloadedEl?: HTMLAudioElement
 } | null = null
 
+function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false
+}
+
 function skipAfterError(track: Track) {
+  // Offline, every remaining stream will fail the same way. Skipping through
+  // them would burn the queue down and stack a near-identical toast per track,
+  // so state the actual problem once and stop.
+  if (isOffline()) {
+    consecutiveErrors = 0
+    // Forget the failed load: otherwise loadedTrackId() still reports this
+    // track, and pressing Play after reconnecting would call play() on an
+    // errored element instead of resolving the source again.
+    currentLoad = null
+    usePlayerStore.setState({ isPlaying: false, isLoading: false })
+    notifyHalt('offline')
+    return
+  }
   notifyTrackError(track)
   consecutiveErrors++
   const { queue } = usePlayerStore.getState()
-  // Guard: if everything is failing (e.g. offline + repeat all), stop instead
-  // of skipping forever.
+  // Guard: if everything is failing, stop instead of skipping forever.
   if (consecutiveErrors >= Math.max(queue.length, 1) || consecutiveErrors >= 10) {
     consecutiveErrors = 0
+    currentLoad = null // as above: let the next Play retry from scratch
+    usePlayerStore.setState({ isLoading: false })
+    notifyHalt('repeated-errors')
     return
   }
   usePlayerStore.getState().next(true)
@@ -129,7 +154,9 @@ function handleFailure(token: number) {
   load.handled = true
   usePlayerStore.setState({ isPlaying: false })
 
-  if (!load.retried) {
+  // The retry exists for transient network hiccups; with no network at all
+  // it just delays the real message by a second.
+  if (!load.retried && !isOffline()) {
     load.retried = true
     setTimeout(() => {
       if (load.token !== loadToken) return
@@ -175,7 +202,7 @@ async function attemptPlay(load: NonNullable<typeof currentLoad>) {
     if (err.name === 'AbortError') return
     // Autoplay policy rejection: reflect paused state, don't skip.
     if (err.name === 'NotAllowedError') {
-      usePlayerStore.setState({ isPlaying: false })
+      usePlayerStore.setState({ isPlaying: false, isLoading: false })
       return
     }
     console.error('Playback failed', err)
@@ -195,6 +222,11 @@ export async function loadAndPlay(track: Track): Promise<void> {
   // crossfade — stop the outgoing element before taking over.
   finishCrossfade()
   const token = ++loadToken
+  // Optimistic: the play button spins from the tap, not from the first byte.
+  usePlayerStore.setState({ isLoading: true, bufferedSec: 0 })
+  // Media keys must work from the moment a load starts, not only once audio
+  // is rolling.
+  ensureMediaHandlers()
 
   // Gapless path: the standby element already buffered this exact track, so
   // we skip resolution and start it directly with whatever it has buffered.
@@ -259,6 +291,24 @@ export function loadedTrackId(): string | null {
   return currentLoad?.track.id ?? null
 }
 
+/**
+ * Full teardown for an emptied queue: stop audio, forget the loaded track and
+ * clear the lock-screen entry, which would otherwise keep showing a track the
+ * user just removed.
+ */
+export function stop(): void {
+  finishCrossfade()
+  loadToken++
+  invalidateStandby()
+  active.pause()
+  active.removeAttribute('src')
+  active.load()
+  releaseObjectUrl()
+  currentLoad = null
+  usePlayerStore.setState({ isLoading: false, bufferedSec: 0 })
+  clearMediaSession()
+}
+
 export function play(): void {
   if (fxEnabled() && active !== radioAudio) {
     void import('./audioFx').then((fx) => fx.resumeContext())
@@ -268,6 +318,9 @@ export function play(): void {
 
 export function pause(): void {
   active.pause()
+  // Pausing during an initial load fires no 'pause' event (nothing was
+  // playing) but must still stop the loading spinner.
+  usePlayerStore.setState({ isLoading: false })
   // A pause mid-crossfade must silence the outgoing element too, then abandon
   // the crossfade so a later resume plays only the current track.
   if (crossfading) finishCrossfade()
@@ -528,15 +581,73 @@ function notifyTrackError(track: Track) {
   errorListeners.forEach((l) => l(track))
 }
 
+/** Why playback stopped rather than advancing to the next track. */
+export type HaltReason = 'offline' | 'repeated-errors'
+
+type HaltListener = (reason: HaltReason) => void
+const haltListeners = new Set<HaltListener>()
+
+export function onPlaybackHalt(listener: HaltListener): () => void {
+  haltListeners.add(listener)
+  return () => haltListeners.delete(listener)
+}
+
+function notifyHalt(reason: HaltReason) {
+  haltListeners.forEach((l) => l(reason))
+}
+
 // ---- element events -> store sync (guarded so only the active element counts) ----
+
+/** Push the end of the buffered range around the playhead into the store, so
+ *  the seek bar can paint how far ahead is safe to scrub. */
+function writeBuffered(el: HTMLAudioElement) {
+  if (el !== active) return
+  let end = 0
+  try {
+    const ranges = el.buffered
+    const t = el.currentTime
+    for (let i = 0; i < ranges.length; i++) {
+      // Only the range the playhead sits in (slack for range rounding).
+      if (ranges.start(i) <= t + 1 && t <= ranges.end(i) + 1 && ranges.end(i) > end) {
+        end = ranges.end(i)
+      }
+    }
+  } catch {
+    return // some environments stub media elements without TimeRanges
+  }
+  // Only meaningful movement — this can fire many times a second.
+  if (Math.abs(end - usePlayerStore.getState().bufferedSec) > 1) {
+    usePlayerStore.setState({ bufferedSec: end })
+  }
+}
 
 function wire(el: HTMLAudioElement) {
   el.addEventListener('play', () => {
-    if (el === active) usePlayerStore.setState({ isPlaying: true })
+    if (el !== active) return
+    usePlayerStore.setState({ isPlaying: true })
+    setPlaybackState('playing')
   })
   el.addEventListener('pause', () => {
-    if (el === active) usePlayerStore.setState({ isPlaying: false })
+    if (el !== active) return
+    usePlayerStore.setState({ isPlaying: false, isLoading: false })
+    // A pause fired by stop() arrives after the session was cleared (the
+    // event is queued, not synchronous); with nothing loaded there is no
+    // transport to describe, so leave the media session torn down.
+    if (currentLoad) setPlaybackState('paused')
   })
+  // Buffering feedback: 'waiting' = starved mid-track, 'playing' = audio is
+  // genuinely rolling, 'canplay' = enough data while paused (e.g. after a
+  // seek). Together they bound every spinner the UI shows.
+  el.addEventListener('waiting', () => {
+    if (el === active) usePlayerStore.setState({ isLoading: true })
+  })
+  el.addEventListener('playing', () => {
+    if (el === active) usePlayerStore.setState({ isLoading: false })
+  })
+  el.addEventListener('canplay', () => {
+    if (el === active) usePlayerStore.setState({ isLoading: false })
+  })
+  el.addEventListener('progress', () => writeBuffered(el))
 
   el.addEventListener('timeupdate', () => {
     if (el !== active) return
@@ -550,6 +661,7 @@ function wire(el: HTMLAudioElement) {
     if (now - lastTimeWrite < 450) return
     lastTimeWrite = now
     usePlayerStore.setState({ positionSec: el.currentTime })
+    writeBuffered(el)
     if (
       Number.isFinite(el.duration) &&
       el.duration - el.currentTime < PREFETCH_THRESHOLD_SEC

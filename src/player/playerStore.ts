@@ -32,8 +32,14 @@ export interface PlayerState {
   /** Non-null while shuffle is on: the pre-shuffle queue, for restoring order. */
   originalQueue: Track[] | null
   isPlaying: boolean
+  /** True from the moment a load starts until audio is actually rolling, and
+   *  again while the element rebuffers mid-track ('waiting'). Drives the
+   *  spinner on the play button — without it a cold stream looks dead. */
+  isLoading: boolean
   positionSec: number
   durationSec: number
+  /** End (in seconds) of the buffered range around the playhead. */
+  bufferedSec: number
   volume: number
   muted: boolean
   shuffle: boolean
@@ -52,6 +58,11 @@ export interface PlayerState {
   playbackRate: number
   /** Keep pitch constant while changing speed (off = turntable-style). */
   preservePitch: boolean
+  /** True between restoring a saved session and playback actually starting.
+   *  While set, positionSec is a *pending* resume point the engine has not
+   *  loaded yet — the UI labels it as a resume, and seek() must not hand it
+   *  to an empty audio element. */
+  restoredFromSession: boolean
 
   playQueue: (tracks: Track[], startIndex?: number) => void
   playTrack: (track: Track) => void
@@ -124,7 +135,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
   function startTrack(index: number) {
     const track = get().queue[index]
     if (!track) return
-    set({ currentIndex: index, positionSec: 0, durationSec: track.durationSec })
+    set({
+      currentIndex: index,
+      positionSec: 0,
+      durationSec: track.durationSec,
+      restoredFromSession: false,
+    })
     engine.loadAndPlay(track)
     recordPlayLazy(track)
   }
@@ -142,8 +158,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     currentIndex: -1,
     originalQueue: null,
     isPlaying: false,
+    isLoading: false,
     positionSec: 0,
     durationSec: 0,
+    bufferedSec: 0,
     volume: initialVolume(),
     muted: false,
     shuffle: false,
@@ -154,6 +172,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     radioMode: false,
     playbackRate: 1,
     preservePitch: true,
+    restoredFromSession: false,
 
     playQueue: (tracks, startIndex = 0) => {
       if (tracks.length === 0) return
@@ -214,6 +233,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       // and pick up at the saved position instead of resuming a stale element.
       if (engine.loadedTrackId() !== track.id) {
         const resumeAt = positionSec
+        set({ restoredFromSession: false })
         void engine.loadAndPlay(track).then(() => {
           if (resumeAt > 1 && !track.id.startsWith('radio:')) engine.seek(resumeAt)
         })
@@ -236,13 +256,29 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     prev: () => {
       const { queue, currentIndex, positionSec, repeat } = get()
       if (positionSec > 3 || queue.length <= 1) {
-        engine.seek(0)
+        // Through the store, not the engine: on a restored-but-unloaded track
+        // the element has no media and would report 0 back regardless.
+        get().seek(0)
         return
       }
       startTrack(prevIndex(queue.length, currentIndex, repeat))
     },
 
-    seek: (sec) => engine.seek(sec),
+    seek: (sec) => {
+      const { queue, currentIndex, durationSec } = get()
+      const track = queue[currentIndex]
+      // Before the engine holds this track (a restored session the user
+      // hasn't played yet) the element has no media: setting currentTime on
+      // it clamps to 0 and would write that 0 back as the resume point —
+      // silently destroying the saved position. Move the pending position
+      // instead; togglePlay seeks there once the track is loaded.
+      if (track && engine.loadedTrackId() !== track.id) {
+        const max = durationSec > 0 ? durationSec : sec
+        set({ positionSec: Math.min(Math.max(0, sec), max) })
+        return
+      }
+      engine.seek(sec)
+    },
 
     setVolume: (v) => {
       const clamped = Math.min(1, Math.max(0, v))
@@ -365,14 +401,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     clearQueue: () => {
-      engine.pause()
+      // Full teardown, not just a pause: drops the loaded track and clears the
+      // lock screen, which would otherwise keep showing the emptied queue.
+      engine.stop()
       set({
         queue: [],
         currentIndex: -1,
         originalQueue: null,
         isPlaying: false,
+        isLoading: false,
         positionSec: 0,
         durationSec: 0,
+        bufferedSec: 0,
         radioMode: false,
       })
     },
@@ -400,6 +440,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         radioMode: saved.radioMode,
         positionSec: saved.positionSec,
         durationSec: track.durationSec,
+        restoredFromSession: saved.positionSec > 1,
       })
     },
 
