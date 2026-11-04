@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import Button from '../components/common/Button'
 import PageHeading from '../components/common/PageHeading'
 import { DownloadIcon } from '../components/common/icons'
-import { emitAppEvent } from '../lib/appEvents'
+import { useUiStore } from '../lib/uiStore'
 import { formatBytes } from '../lib/format'
 import { toast } from '../lib/toast'
 import { crossfadeSec, setCrossfadeSec } from '../player/audioEngine'
@@ -116,7 +116,7 @@ export default function Settings() {
           <p className="mt-2 text-xs text-zinc-400">
             <button
               type="button"
-              onClick={() => emitAppEvent('show-shortcuts')}
+              onClick={() => useUiStore.getState().setHelpOpen(true)}
               className="underline-offset-2 hover:text-white hover:underline"
             >
               Keyboard shortcuts

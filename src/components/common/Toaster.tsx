@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { onToast, type ToastPayload } from '../../lib/toast'
-import { onPlaybackHalt, onTrackError } from '../../player/audioEngine'
 import { CloseIcon } from './icons'
 
 interface ToastItem extends ToastPayload {
@@ -60,21 +59,6 @@ export default function Toaster() {
         }, ms),
       )
     }
-    const offError = onTrackError((track) =>
-      push({ message: `Couldn't play “${track.title}” — skipped.`, tone: 'error' }),
-    )
-    // Playback gave up rather than skipping on: this needs longer on screen
-    // than a per-track notice, because nothing is playing now.
-    const offHalt = onPlaybackHalt((reason) =>
-      push({
-        message:
-          reason === 'offline'
-            ? "You're offline — only downloaded tracks can play."
-            : "Playback stopped — those tracks couldn't be loaded.",
-        tone: 'error',
-        durationMs: 7000,
-      }),
-    )
     const offToast = onToast(push)
 
     // Explain a reload that already happened for a stale chunk. It has to be
@@ -89,8 +73,6 @@ export default function Toaster() {
     }
 
     return () => {
-      offError()
-      offHalt()
       offToast()
       pending.forEach(clearTimeout)
       pending.clear()

@@ -1,4 +1,5 @@
 import { isSameWork } from '../lib/classical'
+import { toast } from '../lib/toast'
 import type { Track } from '../types/model'
 import * as fx from './audioFx'
 import {
@@ -121,10 +122,10 @@ function skipAfterError(track: Track) {
     // errored element instead of resolving the source again.
     currentLoad = null
     usePlayerStore.setState({ isPlaying: false, isLoading: false })
-    notifyHalt('offline')
+    notifyHalt("You're offline — only downloaded tracks can play.")
     return
   }
-  notifyTrackError(track)
+  toast(`Couldn't play “${track.title}” — skipped.`, { tone: 'error' })
   consecutiveErrors++
   const { queue } = usePlayerStore.getState()
   // Guard: if everything is failing, stop instead of skipping forever.
@@ -132,7 +133,7 @@ function skipAfterError(track: Track) {
     consecutiveErrors = 0
     currentLoad = null // as above: let the next Play retry from scratch
     usePlayerStore.setState({ isLoading: false })
-    notifyHalt('repeated-errors')
+    notifyHalt("Playback stopped — those tracks couldn't be loaded.")
     return
   }
   usePlayerStore.getState().next(true)
@@ -574,33 +575,10 @@ if (typeof document !== 'undefined') {
   })
 }
 
-// ---- error toast plumbing (UI subscribes) ----
-
-type TrackErrorListener = (track: Track) => void
-const errorListeners = new Set<TrackErrorListener>()
-
-export function onTrackError(listener: TrackErrorListener): () => void {
-  errorListeners.add(listener)
-  return () => errorListeners.delete(listener)
-}
-
-function notifyTrackError(track: Track) {
-  errorListeners.forEach((l) => l(track))
-}
-
-/** Why playback stopped rather than advancing to the next track. */
-export type HaltReason = 'offline' | 'repeated-errors'
-
-type HaltListener = (reason: HaltReason) => void
-const haltListeners = new Set<HaltListener>()
-
-export function onPlaybackHalt(listener: HaltListener): () => void {
-  haltListeners.add(listener)
-  return () => haltListeners.delete(listener)
-}
-
-function notifyHalt(reason: HaltReason) {
-  haltListeners.forEach((l) => l(reason))
+/** Playback gave up rather than skipping on: this needs longer on screen
+ *  than a per-track notice, because nothing is playing now. */
+function notifyHalt(message: string) {
+  toast(message, { tone: 'error', durationMs: 7000 })
 }
 
 // ---- element events -> store sync (guarded so only the active element counts) ----
