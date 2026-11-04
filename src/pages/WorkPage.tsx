@@ -17,6 +17,7 @@ import { formatDuration } from '../lib/format'
 import { composerBySlug } from '../lib/composers'
 import { detectInstruments, instrumentBySlug } from '../lib/performers'
 import { imslpSearchUrl } from '../lib/imslp'
+import { sungTextFor } from '../lib/libretti'
 import { usePlayerStore } from '../player/playerStore'
 import { searchSummary } from '../services/wikipedia'
 
@@ -60,6 +61,7 @@ export default function WorkPage() {
   const surname = work.composerSlug
     ? (composerBySlug(work.composerSlug)?.surname ?? work.composerName)
     : work.composerName
+  const sungText = sungTextFor(work)
 
   return (
     <>
@@ -125,6 +127,17 @@ export default function WorkPage() {
             >
               Score on IMSLP ↗
             </a>
+            {sungText && (
+              <a
+                href={sungText.url}
+                target="_blank"
+                rel="noreferrer"
+                title="Read the words on Wikisource, the free public-domain text library"
+                className={buttonClass('outline')}
+              >
+                {sungText.label} ↗
+              </a>
+            )}
           </div>
       </DetailHeader>
 
