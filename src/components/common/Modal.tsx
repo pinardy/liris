@@ -1,5 +1,4 @@
 import { useRef, type ReactNode } from 'react'
-import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { useDialogBehavior } from '../../hooks/useDialogBehavior'
 import { CloseIcon } from './icons'
 
@@ -12,10 +11,8 @@ export default function Modal({
   onClose: () => void
   children: ReactNode
 }) {
-  // A mobile back swipe closes the dialog like the X button does.
-  useBackDismiss(onClose)
   const panelRef = useRef<HTMLDivElement>(null)
-  // Escape, focus trap and focus restore — none of which a plain div has.
+  // Escape, back swipe, focus trap and focus restore — none of which a plain div has.
   useDialogBehavior(panelRef, onClose)
   return (
     <div

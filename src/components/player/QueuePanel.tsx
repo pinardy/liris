@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useRef, useState, type RefObject } from 'react'
-import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { useDialogBehavior } from '../../hooks/useDialogBehavior'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
 import { usePlayerStore, type PersistedSession } from '../../player/playerStore'
@@ -97,8 +96,6 @@ function QueueRow({
 }
 
 export default function QueuePanel({ onClose }: { onClose: () => void }) {
-  // A mobile back swipe closes the panel like the X button does.
-  useBackDismiss(onClose)
   const panelRef = useRef<HTMLDivElement>(null)
   // Escape closes it, but Tab is NOT trapped: the transport underneath stays
   // deliberately reachable while the queue is open.

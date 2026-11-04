@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { useDialogBehavior } from '../../hooks/useDialogBehavior'
 import { useSwipe } from '../../hooks/useSwipe'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
@@ -62,8 +61,6 @@ export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {
   const artworkUrl = useTrackArtwork(track)
   const workId = track ? workIdForTrack(track) : undefined
 
-  // A mobile back swipe closes the sheet like the X button does.
-  useBackDismiss(onClose)
   const sheetRef = useRef<HTMLDivElement>(null)
   useDialogBehavior(sheetRef, onClose)
   // Flick down to dismiss — the counterpart to the flick up that opened it.
