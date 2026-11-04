@@ -26,6 +26,13 @@ export function isFxEnabled(): boolean {
   return localStorage.getItem(ENABLED_KEY) === '1'
 }
 
+/** Whether future sessions attach the graph. The engine owns switching it
+ *  on and off (see enableEqualizer / disableEqualizer there). */
+export function setFxEnabled(on: boolean): void {
+  if (on) localStorage.setItem(ENABLED_KEY, '1')
+  else localStorage.removeItem(ENABLED_KEY)
+}
+
 export function loadGains(): number[] {
   try {
     const raw = JSON.parse(localStorage.getItem(GAINS_KEY) ?? '[]') as unknown
@@ -91,25 +98,4 @@ export function setBandGain(index: number, db: number): void {
 
 export function resetGains(): void {
   EQ_BANDS.forEach((_, i) => setBandGain(i, 0))
-}
-
-/** Turn the equalizer on: mark enabled, switch the elements to CORS loading,
- *  build the graph and reload the current track so it picks up the new mode.
- *  (A CORS-tainted source would output silence through the graph, so both
- *  gapless elements must switch modes together.) */
-export async function enableFx(): Promise<void> {
-  localStorage.setItem(ENABLED_KEY, '1')
-  const engine = await import('./audioEngine')
-  const els = engine.getMainElements()
-  for (const el of els) el.crossOrigin = 'anonymous'
-  ensureGraph(...els)
-  resumeContext()
-  await engine.reloadCurrentTrack()
-}
-
-/** Flatten gains and stop attaching the graph in future sessions. (The graph
- *  can't be detached from the element within this session.) */
-export function disableFx(): void {
-  localStorage.removeItem(ENABLED_KEY)
-  resetGains()
 }

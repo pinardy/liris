@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { isIOS } from '../../lib/platform'
+import { disableEqualizer, enableEqualizer } from '../../player/audioEngine'
 import {
   EQ_BAND_LABELS,
   EQ_GAIN_RANGE,
-  disableFx,
-  enableFx,
   getAnalyser,
   isFxEnabled,
   loadGains,
@@ -68,7 +67,7 @@ export default function EqualizerPanel() {
   async function handleEnable() {
     setEnabling(true)
     try {
-      await enableFx()
+      await enableEqualizer()
       setEnabled(true)
       setGains(loadGains())
     } finally {
@@ -77,7 +76,7 @@ export default function EqualizerPanel() {
   }
 
   function handleDisable() {
-    disableFx()
+    disableEqualizer()
     setEnabled(false)
     setGains(loadGains())
   }

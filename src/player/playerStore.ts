@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { recordPlay } from '../services/db/recents'
 import type { Track } from '../types/model'
 import * as engine from './audioEngine'
 import { nextIndex, prevIndex, shuffled, shuffleQueue, type RepeatMode } from './queue'
@@ -116,12 +117,9 @@ export interface PlayerState {
   checkSleepTimer: () => void
 }
 
-/** Fire-and-forget: record a play into recently-played, lazily so Dexie stays
- *  off the hot path and never blocks (or breaks) playback. */
+/** Fire-and-forget: a failed history write must never break playback. */
 function recordPlayLazy(track: Track) {
-  void import('../services/db/recents').then(({ recordPlay }) =>
-    recordPlay(track).catch(() => {}),
-  )
+  recordPlay(track).catch(() => {})
 }
 
 let sleepTimeout: ReturnType<typeof setTimeout> | null = null

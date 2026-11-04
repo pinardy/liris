@@ -9,6 +9,7 @@ import {
 import { findComposer, type Composer, type Period } from '../../lib/composers'
 import { classifyPerformer, detectInstruments, type PerformerRole } from '../../lib/performers'
 import type { Track } from '../../types/model'
+import { db } from '../db/db'
 import {
   archiveThumbnail,
   classicalCollections,
@@ -277,7 +278,6 @@ interface CachedCatalog {
 
 async function loadCachedCatalog(): Promise<CachedCatalog | null> {
   try {
-    const { db } = await import('../db/db')
     const row = await db.cache.get(WORKS_CACHE_KEY)
     const cached = row?.value as CachedCatalog | undefined
     return cached && Array.isArray(cached.works) && cached.works.length > 0
@@ -290,7 +290,6 @@ async function loadCachedCatalog(): Promise<CachedCatalog | null> {
 
 async function saveCachedCatalog(catalog: CachedCatalog): Promise<void> {
   try {
-    const { db } = await import('../db/db')
     await db.cache.put({ key: WORKS_CACHE_KEY, value: catalog, savedAt: Date.now() })
   } catch {
     // Cache is an optimisation only; quota errors etc. are non-fatal.

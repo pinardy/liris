@@ -1,3 +1,5 @@
+import { downloadKey } from '../services/db/downloads'
+import { getArtworkBlob, getFileBlob } from '../services/db/library'
 import type { Track } from '../types/model'
 
 /**
@@ -10,10 +12,6 @@ export async function resolvePlayableUrl(
 ): Promise<{ url: string; isObjectUrl: boolean }> {
   // A downloaded copy takes priority over streaming — works offline.
   if (track.source !== 'local' && !track.id.startsWith('radio:')) {
-    const [{ getFileBlob }, { downloadKey }] = await Promise.all([
-      import('../services/db/library'),
-      import('../services/db/downloads'),
-    ])
     const blob = await getFileBlob(downloadKey(track.id))
     if (blob) return { url: URL.createObjectURL(blob), isObjectUrl: true }
   }
@@ -25,8 +23,6 @@ export async function resolvePlayableUrl(
     if (!track.archive?.audioUrl) throw new Error('Track has no stream URL')
     return { url: track.archive.audioUrl, isObjectUrl: false }
   }
-  // Local: loaded lazily so Dexie isn't pulled into the initial bundle path.
-  const { getFileBlob } = await import('../services/db/library')
   if (!track.local?.fileKey) throw new Error('Track has no file reference')
   const blob = await getFileBlob(track.local.fileKey)
   if (!blob) throw new Error('Audio file missing from library storage')
@@ -37,7 +33,6 @@ export async function resolvePlayableUrl(
 export async function resolveArtworkUrl(track: Track): Promise<string | undefined> {
   if (track.artworkUrl) return track.artworkUrl
   if (track.source === 'local' && track.local?.artworkKey) {
-    const { getArtworkBlob } = await import('../services/db/library')
     const blob = await getArtworkBlob(track.local.artworkKey)
     if (blob) return URL.createObjectURL(blob)
   }
