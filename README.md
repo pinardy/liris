@@ -58,7 +58,7 @@ npm run preview   # production build — use this to test PWA/offline behaviour
 
 ## Player features
 
-Playlists, favorites and recently-played live in IndexedDB. Full queue with drag-to-reorder, play-next, shuffle and repeat; Media Session lock-screen controls; offline downloads; sleep timer; an opt-in Web Audio equalizer with spectrum visualiser; JSON backup/restore; and a responsive layout with a mobile full-screen now-playing view.
+Every work page links to its score on IMSLP and, for vocal works, to the libretto or liturgical text on Wikisource (both as searches, since neither site names pages predictably). Playlists, favorites and recently-played live in IndexedDB. Full queue with drag-to-reorder, play-next, shuffle and repeat; Media Session lock-screen controls; offline downloads; sleep timer; an opt-in Web Audio equalizer with spectrum visualiser; JSON backup/restore; and a responsive layout with a mobile full-screen now-playing view.
 
 ## Deployment
 
