@@ -48,9 +48,11 @@ export default function ComposerAvatar({
 
   return (
     <span
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-800 to-zinc-800 ${className}`}
+      className={`@container relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-800 to-zinc-800 ${className}`}
     >
-      <span className="select-none font-bold text-indigo-200/90 [font-size:36%]">
+      {/* Sized from the circle (container units), not the page font: the
+          initials stay legible from a 24px chip to a 192px hero. */}
+      <span className="select-none font-bold text-indigo-200/90 text-[36cqw]">
         {name.slice(0, 2)}
       </span>
       {src && !failed && (

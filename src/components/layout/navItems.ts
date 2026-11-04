@@ -21,6 +21,6 @@ export const navItems: NavItem[] = [
   { to: '/search', label: 'Search', short: 'Search', icon: SearchIcon },
   { to: '/composers', label: 'Composers', short: 'Composers', icon: MusicNoteIcon },
   { to: '/library', label: 'Your Library', short: 'Library', icon: LibraryIcon },
-  { to: '/playlists', label: 'Playlists', short: 'Lists', icon: PlaylistIcon },
-  { to: '/favorites', label: 'Favorites', short: 'Saved', icon: HeartIcon },
+  { to: '/playlists', label: 'Playlists', short: 'Playlists', icon: PlaylistIcon },
+  { to: '/favorites', label: 'Favorites', short: 'Favorites', icon: HeartIcon },
 ]

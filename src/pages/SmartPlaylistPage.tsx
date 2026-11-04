@@ -10,6 +10,7 @@ import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
 import { PlayIcon, SparklesIcon } from '../components/common/icons'
 import WorkRow from '../components/classical/WorkRow'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
+import { useConfirm } from '../hooks/useConfirm'
 import { workTracks } from '../lib/classical'
 import { describeSmartRules, evaluateSmartRules } from '../lib/smartRules'
 import { usePlayerStore } from '../player/playerStore'
@@ -27,6 +28,7 @@ export default function SmartPlaylistPage() {
   const { data: index, error, loading } = useClassicalIndex()
   const playQueue = usePlayerStore((s) => s.playQueue)
   const [editing, setEditing] = useState(false)
+  const { confirm, confirmDialog } = useConfirm()
 
   if (playlist === undefined || loading) return <Spinner />
   if (playlist === null) {
@@ -52,10 +54,21 @@ export default function SmartPlaylistPage() {
   const works = evaluateSmartRules(playlist.rules, index)
   const allTracks = works.flatMap(workTracks)
 
-  async function handleDelete() {
-    if (!playlist || !confirm(`Delete smart playlist “${playlist.name}”?`)) return
-    await deleteSmartPlaylist(playlist.id)
-    navigate('/playlists')
+  // An arrow, not a hoisted declaration, so TS keeps `playlist` narrowed
+  // past the not-found return above.
+  const handleDelete = () => {
+    confirm({
+      title: 'Delete smart playlist',
+      message: (
+        <>
+          “{playlist.name}” will be removed. The works it lists stay in the catalog.
+        </>
+      ),
+      confirmLabel: 'Delete playlist',
+      onConfirm: () => {
+        void deleteSmartPlaylist(playlist.id).then(() => navigate('/playlists'))
+      },
+    })
   }
 
   return (
@@ -83,12 +96,13 @@ export default function SmartPlaylistPage() {
             <Button variant="subtle" onClick={() => setEditing(true)}>
               Edit rules
             </Button>
-            <Button variant="subtle" onClick={() => void handleDelete()}>
+            <Button variant="subtle" onClick={handleDelete}>
               Delete
             </Button>
           </div>
       </DetailHeader>
 
+      {confirmDialog}
       {editing && (
         <SmartPlaylistModal
           existing={playlist}

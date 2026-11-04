@@ -96,7 +96,7 @@ export default function Sidebar() {
           <button
             type="button"
             onClick={toggleHelp}
-            className="px-3 text-left text-xs font-medium text-zinc-400 transition-colors hover:text-white"
+            className="hidden px-3 text-left text-xs font-medium text-zinc-400 transition-colors hover:text-white pointer-fine:block"
           >
             Keyboard shortcuts{' '}
             <kbd className="ml-1 rounded bg-zinc-800 px-1 font-mono text-[10px] text-zinc-300">

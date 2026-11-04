@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import PageHeading from '../components/common/PageHeading'
@@ -36,6 +37,13 @@ export default function Search() {
 
   const { data: index, loading } = useClassicalIndex()
   const playQueue = usePlayerStore((s) => s.playQueue)
+  // Five selects stack three rows deep on a phone before any result shows;
+  // there they fold behind one button, open by default only when a filter
+  // is already in effect. Desktop always shows them.
+  const activeFacets = [periodSlug, formSlug, instrumentSlug, performerSlug, maxMin].filter(
+    Boolean,
+  ).length
+  const [filtersOpen, setFiltersOpen] = useState(activeFacets > 0)
 
   function setParam(key: string, value: string) {
     const next = new URLSearchParams(params)
@@ -122,7 +130,19 @@ export default function Search() {
         />
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setFiltersOpen((o) => !o)}
+        aria-expanded={filtersOpen}
+        className={`mb-3 rounded-full px-3 py-1.5 text-xs md:hidden ${
+          activeFacets > 0 ? 'bg-accent/20 text-accent' : 'bg-zinc-800 text-zinc-200'
+        }`}
+      >
+        Filters{activeFacets > 0 && ` (${activeFacets})`} {filtersOpen ? '▴' : '▾'}
+      </button>
+      <div
+        className={`mb-6 flex-wrap items-center gap-2 md:flex ${filtersOpen ? 'flex' : 'hidden'}`}
+      >
         <select
           value={periodSlug}
           onChange={(e) => setParam('period', e.target.value)}

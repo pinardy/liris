@@ -68,26 +68,40 @@ export default function Home() {
     ? instruments.filter((i) => (index.byInstrument.get(i.slug)?.length ?? 0) > 0)
     : []
 
+  // The pitch earns its space once. A returning listener (anything in the
+  // play log) gets a one-line masthead and their music above the fold.
+  const returning = (recentTracks?.length ?? 0) > 0
+  const counts = index && (
+    <>
+      {plural(index.works.length, 'work')} · {plural(index.trackCount, 'movement')} ·{' '}
+      {plural(index.composers.length, 'composer')}
+    </>
+  )
+
   return (
     <>
-      <section className="mb-10 rounded-2xl bg-gradient-to-br from-indigo-900 via-zinc-900 to-zinc-950 p-6 md:p-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
-          Liris Classical
-        </p>
-        <h1 className="mt-2 max-w-2xl text-3xl font-extrabold leading-tight md:text-5xl">
-          The classical canon, free and in full.
-        </h1>
-        <p className="mt-3 max-w-xl text-sm text-zinc-300 md:text-base">
-          Browse by composer, period and form. Every recording here is public domain
-          or Creative Commons — yours to stream, download and keep offline.
-        </p>
-        {index && (
-          <p className="mt-4 text-xs text-zinc-400">
-            {plural(index.works.length, 'work')} · {plural(index.trackCount, 'movement')} ·{' '}
-            {plural(index.composers.length, 'composer')}
+      {returning ? (
+        <section className="mb-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-xl bg-gradient-to-r from-indigo-950 to-zinc-950 px-5 py-3">
+          <h1 className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
+            Liris Classical
+          </h1>
+          {index && <p className="text-xs text-zinc-400">{counts}</p>}
+        </section>
+      ) : (
+        <section className="mb-10 rounded-2xl bg-gradient-to-br from-indigo-900 via-zinc-900 to-zinc-950 p-6 md:p-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
+            Liris Classical
           </p>
-        )}
-      </section>
+          <h1 className="mt-2 max-w-2xl text-3xl font-extrabold leading-tight md:text-5xl">
+            The classical canon, free and in full.
+          </h1>
+          <p className="mt-3 max-w-xl text-sm text-zinc-300 md:text-base">
+            Browse by composer, period and form. Every recording here is public domain
+            or Creative Commons — yours to stream, download and keep offline.
+          </p>
+          {index && <p className="mt-4 text-xs text-zinc-400">{counts}</p>}
+        </section>
+      )}
 
       {loading && <Spinner />}
       {error && <ErrorMessage error={error} onRetry={retry} />}
