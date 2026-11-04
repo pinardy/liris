@@ -194,11 +194,14 @@ export function workSlice(queue: Track[], index: number): { start: number; end: 
   return { start, end }
 }
 
-/** 'Movement 2 of 4' for the track at `index`, or undefined when the work
- *  around it has a single movement. */
-export function movementPosition(queue: Track[], index: number): string | undefined {
+/** Where the track at `index` sits in its work (2 of 4), or undefined when
+ *  the work around it has a single movement. */
+export function movementPosition(
+  queue: Track[],
+  index: number,
+): { n: number; total: number } | undefined {
   const { start, end } = workSlice(queue, index)
-  return end - start > 1 ? `Movement ${index - start + 1} of ${end - start}` : undefined
+  return end - start > 1 ? { n: index - start + 1, total: end - start } : undefined
 }
 
 export function workDuration(work: Work): number {

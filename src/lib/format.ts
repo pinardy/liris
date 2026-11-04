@@ -14,7 +14,7 @@ export function formatDuration(totalSec: number): string {
   return `${h > 0 ? `${h}:` : ''}${mm}:${String(s).padStart(2, '0')}`
 }
 
-/** '1 work', '3 works'. */
+/** '1 work', '3 works'. Non-breaking, so a count never wraps away from its noun. */
 export function plural(n: number, word: string, pluralWord = `${word}s`): string {
-  return `${n} ${n === 1 ? word : pluralWord}`
+  return `${n}\u00a0${n === 1 ? word : pluralWord}`
 }

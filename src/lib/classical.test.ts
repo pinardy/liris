@@ -174,7 +174,7 @@ describe('workSlice and movementPosition', () => {
   })
 
   it('names the position only inside a multi-movement work', () => {
-    expect(movementPosition(queue, 1)).toBe('Movement 2 of 2')
+    expect(movementPosition(queue, 1)).toEqual({ n: 2, total: 2 })
     expect(movementPosition(queue, 2)).toBeUndefined()
     expect(movementPosition(queue, 3)).toBeUndefined()
   })

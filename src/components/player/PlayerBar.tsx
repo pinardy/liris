@@ -49,9 +49,12 @@ export default function PlayerBar() {
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false)
   const artworkUrl = useTrackArtwork(track)
   const workId = track ? workIdForTrack(track) : undefined
-  // 'Movement 2 of 4': where in the work we are, which a movement title alone
-  // ('II. Andante') never says. Cheap: a few string compares over the queue.
-  const position = usePlayerStore((s) => movementPosition(s.queue, s.currentIndex))
+  // Where in the work we are, which a movement title alone ('II. Andante')
+  // never says. Shown as '2/4': the bar's text column is too narrow for words.
+  const position = usePlayerStore((s) => {
+    const p = movementPosition(s.queue, s.currentIndex)
+    return p ? `${p.n}/${p.total}` : undefined
+  })
 
   // Phone gestures on the bar itself: flick up for the full view, sideways to
   // skip — which is why 'previous' can be dropped from the cramped mobile row.
