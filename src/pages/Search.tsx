@@ -13,6 +13,7 @@ import { composerLifespan, fold, periods } from '../lib/composers'
 import { detectInstruments, instruments } from '../lib/performers'
 import { usePlayerStore } from '../player/playerStore'
 import { db } from '../services/db/db'
+import { plural } from '../lib/format'
 
 const MAX_LENGTH_OPTIONS = [10, 20, 40] as const
 /** Results beyond this are cut — always disclosed, never silently. */
@@ -231,9 +232,9 @@ export default function Search() {
                   <span className="block truncate text-sm font-semibold">
                     {entry.name}
                   </span>
-                  <span className="block truncate text-[11px] text-zinc-400">
-                    {entry.composer ? composerLifespan(entry.composer) : ''} ·{' '}
-                    {entry.works.length} works
+                  <span className="block text-[11px] text-zinc-400">
+                    {entry.composer ? `${composerLifespan(entry.composer)} · ` : ''}
+                    {plural(entry.works.length, 'work')}
                   </span>
                 </span>
               </Link>

@@ -1,5 +1,4 @@
 import { useContext, type ReactNode } from 'react'
-import { Link } from 'react-router'
 import type { Track } from '../../types/model'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
 import { formatDuration } from '../../lib/format'
@@ -24,10 +23,6 @@ export default function TrackRow({ track, index, onPlay, actions }: Props) {
   // Which rows will still play with no network — the whole point of the
   // download feature, and previously only discoverable through a menu label.
   const isDownloaded = useContext(DownloadedIdsContext)?.has(track.id) ?? false
-  const artistLink =
-    track.source === 'jamendo' && track.jamendo?.artistId
-      ? `/artist/${track.jamendo.artistId}`
-      : undefined
 
   return (
     <div
@@ -61,17 +56,7 @@ export default function TrackRow({ track, index, onPlay, actions }: Props) {
           >
             {track.title}
           </span>
-          {artistLink ? (
-            <Link
-              to={artistLink}
-              onClick={(e) => e.stopPropagation()}
-              className="block truncate text-xs text-zinc-400 hover:text-white hover:underline"
-            >
-              {track.artist}
-            </Link>
-          ) : (
-            <span className="block truncate text-xs text-zinc-400">{track.artist}</span>
-          )}
+          <span className="block truncate text-xs text-zinc-400">{track.artist}</span>
         </span>
       </button>
 

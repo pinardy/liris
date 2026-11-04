@@ -22,9 +22,11 @@ import {
   classicalCollections,
 } from '../services/archive/api'
 import { getRadios, getRadioTrack, type RadioStation } from '../services/jamendo/api'
+import { plural } from '../lib/format'
+import Button from '../components/common/Button'
 
 export default function Home() {
-  const { data: index, error, loading } = useClassicalIndex()
+  const { data: index, error, loading, retry } = useClassicalIndex()
   const recentTracks = useLiveQuery(() => getRecentTracks(6), [])
   const radiosState = useAsync(() => getRadios(12), [], true, 'home:radios')
   // Live, not session-cached: the mix must reflect today's listening.
@@ -69,20 +71,26 @@ export default function Home() {
         </p>
         {index && (
           <p className="mt-4 text-xs text-zinc-400">
-            {index.works.length} works · {index.trackCount} movements ·{' '}
-            {index.composers.length} composers
+            {plural(index.works.length, 'work')} · {plural(index.trackCount, 'movement')} ·{' '}
+            {plural(index.composers.length, 'composer')}
           </p>
         )}
       </section>
 
       {loading && <Spinner />}
-      {error && <ErrorMessage error={error} />}
+      {error && <ErrorMessage error={error} onRetry={retry} />}
 
       {index && index.failedCollections.length > 0 && (
-        <p className="mb-6 rounded-lg border border-amber-900/50 bg-amber-950/30 p-3 text-sm text-amber-200/90">
-          Couldn't load {index.failedCollections.join(', ')} — some works may be
-          missing until the next refresh.
-        </p>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-900/50 bg-amber-950/30 p-3 text-sm text-amber-200/90">
+          <p>
+            {index.failedCollections.length === classicalCollections.length
+              ? "Couldn't reach archive.org, so the catalog is empty. Downloads and your imported library still play."
+              : `Couldn't load ${index.failedCollections.join(', ')} — some works are missing.`}
+          </p>
+          <Button variant="subtle" size="sm" onClick={retry}>
+            Retry
+          </Button>
+        </div>
       )}
 
       {mixWorks.length > 0 && (
@@ -91,7 +99,7 @@ export default function Home() {
             <div>
               <h2 className="text-base font-bold md:text-lg">Your Daily Mix</h2>
               <p className="mt-1 text-sm text-zinc-400">
-                {mixWorks.length} works around{' '}
+                {plural(mixWorks.length, 'work')} around{' '}
                 {[...new Set(mixWorks.map((w) => w.composerName))].slice(0, 3).join(', ')}
                 {' '}— rebuilt every day from your listening.
               </p>
@@ -147,7 +155,7 @@ export default function Home() {
                     {entry.composer?.surname ?? entry.name}
                   </span>
                   <span className="block text-[11px] text-zinc-400">
-                    {entry.works.length} works
+                    {plural(entry.works.length, 'work')}
                   </span>
                 </Link>
               ))}
@@ -168,7 +176,7 @@ export default function Home() {
                     <p className="font-bold">{p.name}</p>
                     <p className="text-xs text-zinc-400">{p.range}</p>
                     <p className="mt-2 text-xs text-zinc-400">
-                      {index.byPeriod.get(p.name)?.length} works
+                      {plural(index.byPeriod.get(p.name)?.length ?? 0, 'work')}
                     </p>
                   </Link>
                 ))}

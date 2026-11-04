@@ -15,6 +15,8 @@ function formatHours(sec: number): string {
 }
 
 const HEATMAP_WEEKS = 26
+/** Phones show the most recent weeks only, so the grid never needs to scroll. */
+const HEATMAP_WEEKS_NARROW = 16
 
 /** Sequential single-hue ramp: more plays, more gold. */
 function heatClass(count: number): string {
@@ -53,8 +55,13 @@ function Heatmap({ playsByDay }: { playsByDay: Map<string, number> }) {
   return (
     <div className="overflow-x-auto pb-1">
       <div className="flex gap-0.5">
-        {weeks.map((week) => (
-          <div key={week.days[0].key} className="flex flex-col gap-0.5">
+        {weeks.map((week, i) => (
+          <div
+            key={week.days[0].key}
+            className={`flex-col gap-0.5 ${
+              i < HEATMAP_WEEKS - HEATMAP_WEEKS_NARROW ? 'hidden sm:flex' : 'flex'
+            }`}
+          >
             <span className="h-4 overflow-visible whitespace-nowrap text-[9px] text-zinc-400">
               {week.label ?? ''}
             </span>

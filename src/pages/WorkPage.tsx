@@ -13,7 +13,7 @@ import { AsyncGate, EmptyState } from '../components/common/Status'
 import TrackList from '../components/tracks/TrackList'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { formBySlug } from '../lib/classical'
-import { formatDuration } from '../lib/format'
+import { formatDuration, plural } from '../lib/format'
 import { composerBySlug } from '../lib/composers'
 import { detectInstruments, instrumentBySlug } from '../lib/performers'
 import { imslpSearchUrl } from '../lib/imslp'
@@ -76,7 +76,7 @@ export default function WorkPage() {
         }
         eyebrow={
           <>
-            {form?.label.replace(/s$/, '') ?? 'Work'}
+            {form?.singular ?? 'Work'}
             {work.period && ` · ${work.period}`}
           </>
         }
@@ -167,7 +167,7 @@ export default function WorkPage() {
                   {r.performers.join(', ') || r.collectionName}
                 </span>
                 <span className="block text-xs text-zinc-400">
-                  {r.tracks.length} movements · {formatDuration(r.durationSec)}
+                  {plural(r.tracks.length, 'movement')} · {formatDuration(r.durationSec)}
                 </span>
               </button>
             ))}
