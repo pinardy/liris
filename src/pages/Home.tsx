@@ -10,7 +10,7 @@ import WorkCard from '../components/classical/WorkCard'
 import TrackList from '../components/tracks/TrackList'
 import { useAsync } from '../hooks/useAsync'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
-import { forms, workTracks } from '../lib/classical'
+import { forms, workIdForTrack, workTracks } from '../lib/classical'
 import { composerLifespan, periods } from '../lib/composers'
 import { dailyMixWorks } from '../lib/dailyMix'
 import { instruments, roleLabels } from '../lib/performers'
@@ -22,9 +22,11 @@ import {
   classicalCollections,
 } from '../services/archive/api'
 import { getRadios, getRadioTrack, type RadioStation } from '../services/jamendo/api'
+import { plural } from '../lib/format'
+import Button from '../components/common/Button'
 
 export default function Home() {
-  const { data: index, error, loading } = useClassicalIndex()
+  const { data: index, error, loading, retry } = useClassicalIndex()
   const recentTracks = useLiveQuery(() => getRecentTracks(6), [])
   const radiosState = useAsync(() => getRadios(12), [], true, 'home:radios')
   // Live, not session-cached: the mix must reflect today's listening.
@@ -35,6 +37,18 @@ export default function Home() {
 
   const mixWorks =
     index && stats ? dailyMixWorks(index, stats) : []
+
+  // The last thing played, as a WORK: a listener who stopped in the Andante
+  // wants the Andante's place in the symphony, not a bare track row.
+  const resume = (() => {
+    const last = recentTracks?.[0]
+    const workId = last && workIdForTrack(last)
+    const work = workId ? index?.workById.get(workId) : undefined
+    const recording = work?.recordings.find((r) => r.tracks.some((t) => t.id === last!.id))
+    if (!work || !recording || recording.tracks.length < 2) return undefined
+    const at = recording.tracks.findIndex((t) => t.id === last!.id)
+    return { work, recording, at }
+  })()
 
   async function playRadio(station: RadioStation) {
     try {
@@ -54,35 +68,55 @@ export default function Home() {
     ? instruments.filter((i) => (index.byInstrument.get(i.slug)?.length ?? 0) > 0)
     : []
 
+  // The pitch earns its space once. A returning listener (anything in the
+  // play log) gets a one-line masthead and their music above the fold.
+  const returning = (recentTracks?.length ?? 0) > 0
+  const counts = index && (
+    <>
+      {plural(index.works.length, 'work')} · {plural(index.trackCount, 'movement')} ·{' '}
+      {plural(index.composers.length, 'composer')}
+    </>
+  )
+
   return (
     <>
-      <section className="mb-10 rounded-2xl bg-gradient-to-br from-indigo-900 via-zinc-900 to-zinc-950 p-6 md:p-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
-          Liris Classical
-        </p>
-        <h1 className="mt-2 max-w-2xl text-3xl font-extrabold leading-tight md:text-5xl">
-          The classical canon, free and in full.
-        </h1>
-        <p className="mt-3 max-w-xl text-sm text-zinc-300 md:text-base">
-          Browse by composer, period and form. Every recording here is public domain
-          or Creative Commons — yours to stream, download and keep offline.
-        </p>
-        {index && (
-          <p className="mt-4 text-xs text-zinc-400">
-            {index.works.length} works · {index.trackCount} movements ·{' '}
-            {index.composers.length} composers
+      {returning ? (
+        <section className="mb-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-xl bg-gradient-to-r from-indigo-950 to-zinc-950 px-5 py-3">
+          <h1 className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
+            Liris Classical
+          </h1>
+          {index && <p className="text-xs text-zinc-400">{counts}</p>}
+        </section>
+      ) : (
+        <section className="mb-10 rounded-2xl bg-gradient-to-br from-indigo-900 via-zinc-900 to-zinc-950 p-6 md:p-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
+            Liris Classical
           </p>
-        )}
-      </section>
+          <h1 className="mt-2 max-w-2xl text-3xl font-extrabold leading-tight md:text-5xl">
+            The classical canon, free and in full.
+          </h1>
+          <p className="mt-3 max-w-xl text-sm text-zinc-300 md:text-base">
+            Browse by composer, period and form. Every recording here is public domain
+            or Creative Commons — yours to stream, download and keep offline.
+          </p>
+          {index && <p className="mt-4 text-xs text-zinc-400">{counts}</p>}
+        </section>
+      )}
 
       {loading && <Spinner />}
-      {error && <ErrorMessage error={error} />}
+      {error && <ErrorMessage error={error} onRetry={retry} />}
 
       {index && index.failedCollections.length > 0 && (
-        <p className="mb-6 rounded-lg border border-amber-900/50 bg-amber-950/30 p-3 text-sm text-amber-200/90">
-          Couldn't load {index.failedCollections.join(', ')} — some works may be
-          missing until the next refresh.
-        </p>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-900/50 bg-amber-950/30 p-3 text-sm text-amber-200/90">
+          <p>
+            {index.failedCollections.length === classicalCollections.length
+              ? "Couldn't reach archive.org, so the catalog is empty. Downloads and your imported library still play."
+              : `Couldn't load ${index.failedCollections.join(', ')} — some works are missing.`}
+          </p>
+          <Button variant="subtle" size="sm" onClick={retry}>
+            Retry
+          </Button>
+        </div>
       )}
 
       {mixWorks.length > 0 && (
@@ -91,7 +125,7 @@ export default function Home() {
             <div>
               <h2 className="text-base font-bold md:text-lg">Your Daily Mix</h2>
               <p className="mt-1 text-sm text-zinc-400">
-                {mixWorks.length} works around{' '}
+                {plural(mixWorks.length, 'work')} around{' '}
                 {[...new Set(mixWorks.map((w) => w.composerName))].slice(0, 3).join(', ')}
                 {' '}— rebuilt every day from your listening.
               </p>
@@ -117,6 +151,26 @@ export default function Home() {
               </Link>
             </span>
           </div>
+          {resume && (
+            <div className="mb-3 flex items-center justify-between gap-4 rounded-xl bg-zinc-900/70 p-4">
+              <Link to={`/work/${resume.work.id}`} className="group min-w-0">
+                <span className="block text-xs font-medium uppercase tracking-wide text-zinc-400">
+                  Pick up where you left off
+                </span>
+                <span className="mt-1 block truncate font-semibold group-hover:underline">
+                  {resume.work.title}
+                </span>
+                <span className="block truncate text-sm text-zinc-400">
+                  {resume.work.composerName} · Movement {resume.at + 1} of{' '}
+                  {resume.recording.tracks.length}
+                </span>
+              </Link>
+              <PlayButton
+                onClick={() => playQueue(resume.recording.tracks, resume.at)}
+                aria-label={`Resume ${resume.work.title} at movement ${resume.at + 1}`}
+              />
+            </div>
+          )}
           <TrackList tracks={recentTracks} onPlay={(i) => playQueue(recentTracks, i)} />
         </section>
       )}
@@ -147,7 +201,7 @@ export default function Home() {
                     {entry.composer?.surname ?? entry.name}
                   </span>
                   <span className="block text-[11px] text-zinc-400">
-                    {entry.works.length} works
+                    {plural(entry.works.length, 'work')}
                   </span>
                 </Link>
               ))}
@@ -168,7 +222,7 @@ export default function Home() {
                     <p className="font-bold">{p.name}</p>
                     <p className="text-xs text-zinc-400">{p.range}</p>
                     <p className="mt-2 text-xs text-zinc-400">
-                      {index.byPeriod.get(p.name)?.length} works
+                      {plural(index.byPeriod.get(p.name)?.length ?? 0, 'work')}
                     </p>
                   </Link>
                 ))}

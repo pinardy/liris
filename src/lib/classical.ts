@@ -5,6 +5,8 @@ import { findComposer, type Period } from './composers'
 export interface Form {
   slug: string
   label: string
+  /** For one work's eyebrow: 'Symphony', not 'Symphonie'. */
+  singular: string
   blurb: string
   /** Checked in array order, so put more specific patterns first. */
   pattern: RegExp
@@ -14,36 +16,42 @@ export const forms: Form[] = [
   {
     slug: 'symphony',
     label: 'Symphonies',
+    singular: 'Symphony',
     blurb: 'Large-scale works for full orchestra, usually in several movements.',
     pattern: /\bsymphon/i,
   },
   {
     slug: 'concerto',
     label: 'Concertos',
+    singular: 'Concerto',
     blurb: 'A soloist set against the orchestra.',
     pattern: /\bconcerto|brandenburg/i,
   },
   {
     slug: 'chamber',
     label: 'Chamber music',
+    singular: 'Chamber music',
     blurb: 'Small ensembles — quartets, trios and quintets.',
     pattern: /\b(quartet|quintet|trio|sextet|octet|chamber)\b/i,
   },
   {
     slug: 'sonata',
     label: 'Sonatas',
+    singular: 'Sonata',
     blurb: 'Works for a solo instrument, often with piano.',
     pattern: /\bsonata|partita/i,
   },
   {
     slug: 'keyboard',
     label: 'Keyboard works',
+    singular: 'Keyboard work',
     blurb: 'Preludes, fugues, toccatas and variations for keyboard.',
     pattern: /\b(prelude|fugue|toccata|invention|goldberg|well[- ]tempered|clavier)\b/i,
   },
   {
     slug: 'piano-pieces',
     label: 'Piano pieces',
+    singular: 'Piano piece',
     blurb: 'Nocturnes, waltzes, études and other character pieces.',
     pattern:
       /\b(nocturne|waltz|valse|etude|étude|ballade|impromptu|mazurka|polonaise|berceuse|barcarolle|rhapsod)\b/i,
@@ -51,24 +59,28 @@ export const forms: Form[] = [
   {
     slug: 'variations',
     label: 'Variations',
+    singular: 'Variations',
     blurb: 'A theme reworked through successive transformations.',
     pattern: /\bvariation/i,
   },
   {
     slug: 'overture',
     label: 'Overtures',
+    singular: 'Overture',
     blurb: 'Concert and operatic curtain-raisers.',
     pattern: /\bovertur|entr'acte/i,
   },
   {
     slug: 'suite',
     label: 'Suites',
+    singular: 'Suite',
     blurb: 'Linked sets of shorter movements and dances.',
     pattern: /\bsuite|water music|peer gynt|music for the royal/i,
   },
   {
     slug: 'vocal',
     label: 'Vocal & opera',
+    singular: 'Vocal work',
     blurb: 'Opera, mass, cantata and other music with voices.',
     pattern:
       /\b(opera|aria|requiem|mass\b|cantata|oratorio|magnificat|te deum|figaro|flute\b.*magic|magic flute|carmen|messiah)\b/i,
@@ -76,6 +88,7 @@ export const forms: Form[] = [
   {
     slug: 'tone-poem',
     label: 'Tone poems',
+    singular: 'Tone poem',
     blurb: 'Single-movement orchestral works that tell a story.',
     pattern:
       /\b(poem|vltava|moldau|steppes|danse macabre|pictures at|finlandia|meditation|romance)\b/i,
@@ -164,6 +177,31 @@ export function workIdForTrack(track: Track): string | undefined {
  */
 export function isSameWork(a: Track, b: Track): boolean {
   return Boolean(a.album) && a.album === b.album && a.artist === b.artist
+}
+
+/**
+ * The contiguous run of queue tracks belonging to the track at `index` —
+ * this performance's movements, in order — as [start, end). A track with no
+ * work (radio, sparse local files) is a run of one.
+ */
+export function workSlice(queue: Track[], index: number): { start: number; end: number } {
+  const current = queue[index]
+  if (!current?.album) return { start: index, end: index + 1 }
+  let start = index
+  while (start > 0 && isSameWork(queue[start - 1], current)) start--
+  let end = index + 1
+  while (end < queue.length && isSameWork(queue[end], current)) end++
+  return { start, end }
+}
+
+/** Where the track at `index` sits in its work (2 of 4), or undefined when
+ *  the work around it has a single movement. */
+export function movementPosition(
+  queue: Track[],
+  index: number,
+): { n: number; total: number } | undefined {
+  const { start, end } = workSlice(queue, index)
+  return end - start > 1 ? { n: index - start + 1, total: end - start } : undefined
 }
 
 export function workDuration(work: Work): number {

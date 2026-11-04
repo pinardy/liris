@@ -6,15 +6,15 @@ import AboutBlurb from '../components/common/AboutBlurb'
 import BackLink from '../components/common/BackLink'
 import ArtworkImage from '../components/common/ArtworkImage'
 import Button from '../components/common/Button'
-import { buttonClass } from '../components/common/buttonStyles'
+import { chipClass } from '../components/common/Chip'
 import DetailHeader from '../components/common/DetailHeader'
 import { PlayIcon } from '../components/common/icons'
 import { AsyncGate, EmptyState } from '../components/common/Status'
 import TrackList from '../components/tracks/TrackList'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { formBySlug } from '../lib/classical'
-import { formatDuration } from '../lib/format'
-import { composerBySlug } from '../lib/composers'
+import { formatDuration, plural } from '../lib/format'
+import { composerBySlug, composerImageUrl } from '../lib/composers'
 import { detectInstruments, instrumentBySlug } from '../lib/performers'
 import { imslpSearchUrl } from '../lib/imslp'
 import { sungTextFor } from '../lib/libretti'
@@ -62,6 +62,10 @@ export default function WorkPage() {
     ? (composerBySlug(work.composerSlug)?.surname ?? work.composerName)
     : work.composerName
   const sungText = sungTextFor(work)
+  // The collection thumbnail is one logo shared by every work in that
+  // edition; the composer's portrait actually identifies this page.
+  const artwork =
+    (work.composerSlug && composerImageUrl(work.composerSlug, 400)) || recording.artworkUrl
 
   return (
     <>
@@ -69,14 +73,14 @@ export default function WorkPage() {
       <DetailHeader
         artwork={
           <ArtworkImage
-            src={recording.artworkUrl}
-            className="size-40 sm:size-48"
+            src={artwork}
+            className="size-28 sm:size-48"
             rounded="rounded-lg"
           />
         }
         eyebrow={
           <>
-            {form?.label.replace(/s$/, '') ?? 'Work'}
+            {form?.singular ?? 'Work'}
             {work.period && ` · ${work.period}`}
           </>
         }
@@ -118,12 +122,16 @@ export default function WorkPage() {
             </Button>
             <FavoriteWorkButton tracks={recording.tracks} />
             <DownloadWorkButton tracks={recording.tracks} />
+          </div>
+          {/* Reading matter, as chips like the composer page: these leave the
+              app, so they shouldn't compete with Play for a thumb. */}
+          <div className="mt-3 flex flex-wrap gap-2">
             <a
               href={imslpSearchUrl(`${work.title} ${work.composerName}`)}
               target="_blank"
               rel="noreferrer"
               title="Find the sheet music on IMSLP, the free public-domain score library"
-              className={buttonClass('outline')}
+              className={chipClass}
             >
               Score on IMSLP ↗
             </a>
@@ -133,7 +141,7 @@ export default function WorkPage() {
                 target="_blank"
                 rel="noreferrer"
                 title="Read the words on Wikisource, the free public-domain text library"
-                className={buttonClass('outline')}
+                className={chipClass}
               >
                 {sungText.label} ↗
               </a>
@@ -167,7 +175,7 @@ export default function WorkPage() {
                   {r.performers.join(', ') || r.collectionName}
                 </span>
                 <span className="block text-xs text-zinc-400">
-                  {r.tracks.length} movements · {formatDuration(r.durationSec)}
+                  {plural(r.tracks.length, 'movement')} · {formatDuration(r.durationSec)}
                 </span>
               </button>
             ))}
@@ -178,6 +186,7 @@ export default function WorkPage() {
       <TrackList
         tracks={recording.tracks}
         onPlay={(i) => playQueue(recording.tracks, i)}
+        variant="movements"
       />
 
       <TermChips texts={[work.title, ...recording.tracks.map((t) => t.title)]} />

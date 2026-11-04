@@ -4,9 +4,10 @@ import PageHeading from '../components/common/PageHeading'
 import { EmptyState, ErrorMessage, Spinner } from '../components/common/Status'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { composerLifespan, periods, type Period } from '../lib/composers'
+import { plural } from '../lib/format'
 
 export default function Composers() {
-  const { data: index, error, loading } = useClassicalIndex()
+  const { data: index, error, loading, retry } = useClassicalIndex()
   // In the URL, not component state: opening a composer and coming back used
   // to reset the filter, and a filtered view wasn't linkable.
   const [params, setParams] = useSearchParams()
@@ -20,7 +21,7 @@ export default function Composers() {
 
   if (loading) return <Spinner />
   if (error) {
-    return <ErrorMessage error={error} onRetry={() => window.location.reload()} />
+    return <ErrorMessage error={error} onRetry={retry} />
   }
   if (!index) {
     return (
@@ -97,9 +98,9 @@ export default function Composers() {
               <span className="block truncate text-sm font-semibold">
                 {entry.composer?.surname ?? entry.name}
               </span>
-              <span className="block truncate text-[11px] text-zinc-400">
-                {entry.composer ? composerLifespan(entry.composer) : ''} ·{' '}
-                {entry.works.length} works
+              <span className="block text-[11px] text-zinc-400">
+                {entry.composer ? `${composerLifespan(entry.composer)} · ` : ''}
+                {plural(entry.works.length, 'work')}
               </span>
             </span>
           </Link>

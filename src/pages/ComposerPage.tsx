@@ -17,6 +17,7 @@ import { imslpSearchUrl } from '../lib/imslp'
 import { usePlayerStore } from '../player/playerStore'
 import { getComposerPlayCount } from '../services/db/stats'
 import { fetchSummary } from '../services/wikipedia'
+import { plural } from '../lib/format'
 
 export default function ComposerPage() {
   const { slug } = useParams()
@@ -79,7 +80,7 @@ export default function ComposerPage() {
             </p>
           )}
           <p className="mt-1 text-sm text-zinc-400">
-            {entry.works.length} works · {entry.trackCount} movements
+            {plural(entry.works.length, 'work')} · {plural(entry.trackCount, 'movement')}
             {playCount !== undefined && playCount > 0 && (
               <>
                 {' · '}

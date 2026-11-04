@@ -9,6 +9,7 @@ import WorkRow from '../components/classical/WorkRow'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
 import { usePlayerStore } from '../player/playerStore'
 import { archiveThumbnail, classicalCollections } from '../services/archive/api'
+import { plural } from '../lib/format'
 
 /** One source edition, shown as the works it contributes. */
 export default function CollectionPage() {
@@ -51,7 +52,7 @@ export default function CollectionPage() {
       >
           <p className="mt-2 max-w-2xl text-sm text-zinc-400">{collection.description}</p>
           <p className="mt-1 text-sm text-zinc-400">
-            {collection.artist} · {works.length} works · {tracks.length} movements
+            {collection.artist} · {plural(works.length, 'work')} · {plural(tracks.length, 'movement')}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
             {collection.license} ·{' '}

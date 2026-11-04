@@ -4,9 +4,11 @@ import {
   detectCatalogue,
   detectForm,
   isSameWork,
+  movementPosition,
   normalizeWorkTitle,
   slugify,
   workIdForTrack,
+  workSlice,
 } from './classical'
 
 describe('detectCatalogue', () => {
@@ -150,5 +152,30 @@ describe('workIdForTrack', () => {
 
   it('returns undefined for non-archive tracks', () => {
     expect(workIdForTrack(track({ source: 'local', album: 'X' }))).toBeUndefined()
+  })
+})
+
+describe('workSlice and movementPosition', () => {
+  const mv = (id: string, album?: string): Track => ({
+    id,
+    source: 'archive',
+    title: id,
+    artist: 'Beethoven',
+    album,
+    durationSec: 1,
+    addedAt: 0,
+  })
+  const queue = [mv('a1', 'Work A'), mv('a2', 'Work A'), mv('b1', 'Work B'), mv('r')]
+
+  it('finds the run of movements around the current track', () => {
+    expect(workSlice(queue, 1)).toEqual({ start: 0, end: 2 })
+    expect(workSlice(queue, 2)).toEqual({ start: 2, end: 3 })
+    expect(workSlice(queue, 3)).toEqual({ start: 3, end: 4 })
+  })
+
+  it('names the position only inside a multi-movement work', () => {
+    expect(movementPosition(queue, 1)).toEqual({ n: 2, total: 2 })
+    expect(movementPosition(queue, 2)).toBeUndefined()
+    expect(movementPosition(queue, 3)).toBeUndefined()
   })
 })

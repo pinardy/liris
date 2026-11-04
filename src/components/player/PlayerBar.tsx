@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
 import { useSwipe } from '../../hooks/useSwipe'
 import { useUiStore } from '../../lib/uiStore'
-import { workIdForTrack } from '../../lib/classical'
+import { movementPosition, workIdForTrack } from '../../lib/classical'
 import { formatDuration } from '../../lib/format'
 import { usePlayerStore, selectCurrentTrack } from '../../player/playerStore'
 import ArtworkImage from '../common/ArtworkImage'
@@ -49,6 +49,12 @@ export default function PlayerBar() {
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false)
   const artworkUrl = useTrackArtwork(track)
   const workId = track ? workIdForTrack(track) : undefined
+  // Where in the work we are, which a movement title alone ('II. Andante')
+  // never says. Shown as '2/4': the bar's text column is too narrow for words.
+  const position = usePlayerStore((s) => {
+    const p = movementPosition(s.queue, s.currentIndex)
+    return p ? `${p.n}/${p.total}` : undefined
+  })
 
   // Phone gestures on the bar itself: flick up for the full view, sideways to
   // skip — which is why 'previous' can be dropped from the cramped mobile row.
@@ -114,6 +120,7 @@ export default function PlayerBar() {
                   ) : (
                     track.album
                   )}
+                  {position && ` · ${position}`}
                   {' · '}
                   {track.artist}
                 </>

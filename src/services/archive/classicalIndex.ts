@@ -265,6 +265,11 @@ function buildIndex(works: Work[], failed: string[]): ClassicalIndex {
 
 let indexPromise: Promise<ClassicalIndex> | null = null
 
+/** Drop the memoised index so the next getClassicalIndex() refetches. */
+export function resetClassicalIndex(): void {
+  indexPromise = null
+}
+
 /** Bump when parsing/normalisation or the cached shape changes. */
 const WORKS_CACHE_KEY = 'classical-works-v2'
 

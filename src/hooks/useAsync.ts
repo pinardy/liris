@@ -10,6 +10,11 @@ interface AsyncState<T> {
 const memCache = new Map<string, unknown>()
 const MAX_CACHE_ENTRIES = 50
 
+/** Forget a cached result so the next mount (or re-run) fetches again. */
+export function invalidateAsync(cacheKey: string): void {
+  memCache.delete(cacheKey)
+}
+
 /**
  * Minimal fetch-state hook. `deps` control when the fetcher re-runs.
  * Pass `enabled: false` to hold off (e.g. empty search query).

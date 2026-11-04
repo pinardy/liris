@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { useDialogBehavior } from '../../hooks/useDialogBehavior'
 import { useSwipe } from '../../hooks/useSwipe'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
-import { isSameWork, workIdForTrack } from '../../lib/classical'
+import { workIdForTrack, workSlice } from '../../lib/classical'
 import { findComposer } from '../../lib/composers'
 import { formatDuration } from '../../lib/format'
 import { usePlayerStore, selectCurrentTrack } from '../../player/playerStore'
@@ -23,21 +23,8 @@ import {
   SkipPrevIcon,
 } from '../common/icons'
 import { searchSummary } from '../../services/wikipedia'
-import type { Track } from '../../types/model'
 import BookmarkButton from './BookmarkButton'
 import SeekBar from './SeekBar'
-
-/** The contiguous run of queue tracks belonging to the current work —
- *  i.e. this performance's movements, in order. */
-function workSlice(queue: Track[], currentIndex: number): { start: number; end: number } {
-  const current = queue[currentIndex]
-  if (!current?.album) return { start: currentIndex, end: currentIndex + 1 }
-  let start = currentIndex
-  while (start > 0 && isSameWork(queue[start - 1], current)) start--
-  let end = currentIndex + 1
-  while (end < queue.length && isSameWork(queue[end], current)) end++
-  return { start, end }
-}
 
 /** Full-screen now-playing view, with program notes for the current work. */
 export default function NowPlayingSheet({ onClose }: { onClose: () => void }) {

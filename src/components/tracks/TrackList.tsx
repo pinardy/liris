@@ -16,6 +16,8 @@ interface Props {
   renderActions?: (track: Track) => ReactNode
   /** When set, rows get a drag handle; called with (from, to) on drop. */
   onReorder?: (from: number, to: number) => void
+  /** See TrackRow: 'movements' for the rows inside one work's page. */
+  variant?: 'default' | 'movements'
 }
 
 const defaultActions = (track: Track) => <TrackActions track={track} />
@@ -25,6 +27,7 @@ export default function TrackList({
   onPlay,
   renderActions = defaultActions,
   onReorder,
+  variant,
 }: Props) {
   const favoriteIds = useLiveQuery(getFavoriteIds, [])
   const downloadedIds = useLiveQuery(getDownloadedIds, [])
@@ -71,6 +74,7 @@ export default function TrackList({
                 index={i}
                 onPlay={() => onPlay(i)}
                 actions={renderActions?.(track)}
+                variant={variant}
               />
             )
             if (!onReorder) return row

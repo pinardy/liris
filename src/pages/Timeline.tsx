@@ -87,6 +87,15 @@ export default function Timeline() {
         ))}
       </div>
 
+      <p className="mb-2 text-xs text-zinc-400 sm:hidden">
+        Scroll sideways for later composers →
+      </p>
+      <div className="relative">
+      {/* Edge fade signals the chart continues; hidden once it fits. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-zinc-950 to-transparent sm:hidden"
+      />
       <div className="overflow-x-auto pb-4">
         <div className="relative" style={{ width: chartWidth }}>
           {/* Year gridlines behind everything */}
@@ -145,6 +154,7 @@ export default function Timeline() {
             </Link>
           ))}
         </div>
+      </div>
       </div>
     </>
   )

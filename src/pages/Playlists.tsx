@@ -158,8 +158,8 @@ export default function Playlists() {
             title="No playlists yet"
             action={{ label: 'New playlist', onClick: () => setCreating(true) }}
           >
-            Create a playlist and mix Jamendo tracks with your own files — playback
-            moves seamlessly between both.
+            Gather whole works, single movements, your own files and contemporary
+            tracks into one list — or let a smart playlist pick works by rule.
           </EmptyState>
         )
       )}

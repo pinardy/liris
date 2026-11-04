@@ -113,7 +113,8 @@ export default function Settings() {
             The equalizer and sleep timer live in the player bar while music is
             playing.
           </p>
-          <p className="mt-2 text-xs text-zinc-400">
+          {/* Pointless on a phone; shown only to fine-pointer (mouse/trackpad) devices. */}
+          <p className="mt-2 hidden text-xs text-zinc-400 pointer-fine:block">
             <button
               type="button"
               onClick={() => useUiStore.getState().setHelpOpen(true)}
