@@ -10,7 +10,7 @@ import WorkCard from '../components/classical/WorkCard'
 import TrackList from '../components/tracks/TrackList'
 import { useAsync } from '../hooks/useAsync'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
-import { forms, workTracks } from '../lib/classical'
+import { forms, workIdForTrack, workTracks } from '../lib/classical'
 import { composerLifespan, periods } from '../lib/composers'
 import { dailyMixWorks } from '../lib/dailyMix'
 import { instruments, roleLabels } from '../lib/performers'
@@ -37,6 +37,18 @@ export default function Home() {
 
   const mixWorks =
     index && stats ? dailyMixWorks(index, stats) : []
+
+  // The last thing played, as a WORK: a listener who stopped in the Andante
+  // wants the Andante's place in the symphony, not a bare track row.
+  const resume = (() => {
+    const last = recentTracks?.[0]
+    const workId = last && workIdForTrack(last)
+    const work = workId ? index?.workById.get(workId) : undefined
+    const recording = work?.recordings.find((r) => r.tracks.some((t) => t.id === last!.id))
+    if (!work || !recording || recording.tracks.length < 2) return undefined
+    const at = recording.tracks.findIndex((t) => t.id === last!.id)
+    return { work, recording, at }
+  })()
 
   async function playRadio(station: RadioStation) {
     try {
@@ -125,6 +137,26 @@ export default function Home() {
               </Link>
             </span>
           </div>
+          {resume && (
+            <div className="mb-3 flex items-center justify-between gap-4 rounded-xl bg-zinc-900/70 p-4">
+              <Link to={`/work/${resume.work.id}`} className="group min-w-0">
+                <span className="block text-xs font-medium uppercase tracking-wide text-zinc-400">
+                  Pick up where you left off
+                </span>
+                <span className="mt-1 block truncate font-semibold group-hover:underline">
+                  {resume.work.title}
+                </span>
+                <span className="block truncate text-sm text-zinc-400">
+                  {resume.work.composerName} · Movement {resume.at + 1} of{' '}
+                  {resume.recording.tracks.length}
+                </span>
+              </Link>
+              <PlayButton
+                onClick={() => playQueue(resume.recording.tracks, resume.at)}
+                aria-label={`Resume ${resume.work.title} at movement ${resume.at + 1}`}
+              />
+            </div>
+          )}
           <TrackList tracks={recentTracks} onPlay={(i) => playQueue(recentTracks, i)} />
         </section>
       )}

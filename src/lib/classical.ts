@@ -179,6 +179,28 @@ export function isSameWork(a: Track, b: Track): boolean {
   return Boolean(a.album) && a.album === b.album && a.artist === b.artist
 }
 
+/**
+ * The contiguous run of queue tracks belonging to the track at `index` —
+ * this performance's movements, in order — as [start, end). A track with no
+ * work (radio, sparse local files) is a run of one.
+ */
+export function workSlice(queue: Track[], index: number): { start: number; end: number } {
+  const current = queue[index]
+  if (!current?.album) return { start: index, end: index + 1 }
+  let start = index
+  while (start > 0 && isSameWork(queue[start - 1], current)) start--
+  let end = index + 1
+  while (end < queue.length && isSameWork(queue[end], current)) end++
+  return { start, end }
+}
+
+/** 'Movement 2 of 4' for the track at `index`, or undefined when the work
+ *  around it has a single movement. */
+export function movementPosition(queue: Track[], index: number): string | undefined {
+  const { start, end } = workSlice(queue, index)
+  return end - start > 1 ? `Movement ${index - start + 1} of ${end - start}` : undefined
+}
+
 export function workDuration(work: Work): number {
   return work.recordings[0]?.durationSec ?? 0
 }
