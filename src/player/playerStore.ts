@@ -27,6 +27,18 @@ export interface PersistedSession {
   radioMode: boolean
 }
 
+/**
+ * The one active sleep timer, if any: a wall-clock deadline, the end of the
+ * current track, or the end of the current WORK (after the last movement whose
+ * album/artist match the playing track's — the natural unit for classical).
+ */
+export type SleepTimer =
+  | { kind: 'at'; endsAt: number }
+  | { kind: 'track-end' }
+  | { kind: 'work-end' }
+
+export type SleepTimerOption = number | 'track-end' | 'work-end' | null
+
 export interface PlayerState {
   queue: Track[]
   currentIndex: number
@@ -45,13 +57,7 @@ export interface PlayerState {
   muted: boolean
   shuffle: boolean
   repeat: RepeatMode
-  /** Epoch ms when the sleep timer will pause playback; null = no timer. */
-  sleepTimerEndsAt: number | null
-  /** Pause when the current track finishes instead of advancing. */
-  sleepAtTrackEnd: boolean
-  /** Pause once the current WORK finishes — after the last movement whose
-   *  album/artist match the playing track's. The natural unit for classical. */
-  sleepAtWorkEnd: boolean
+  sleepTimer: SleepTimer | null
   /** True while the queue was built by startRadio (cleared by other plays). */
   radioMode: boolean
   /** Playback speed, 1 = normal. Session-only on purpose: a stale 0.7×
@@ -107,7 +113,7 @@ export interface PlayerState {
    */
   restoreSession: (saved: PersistedSession) => void
   /** minutes, 'track-end', 'work-end', or null to cancel. */
-  setSleepTimer: (option: number | 'track-end' | 'work-end' | null) => void
+  setSleepTimer: (option: SleepTimerOption) => void
   /**
    * Wall-clock check for timer expiry. Mobile browsers throttle background
    * timers heavily, so setTimeout alone can fire minutes late — the engine
@@ -164,9 +170,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     muted: false,
     shuffle: false,
     repeat: 'off',
-    sleepTimerEndsAt: null,
-    sleepAtTrackEnd: false,
-    sleepAtWorkEnd: false,
+    sleepTimer: null,
     radioMode: false,
     playbackRate: 1,
     preservePitch: true,
@@ -469,23 +473,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       }
       // A new (or cancelled) timer undoes any fade already in progress.
       engine.setSleepFade(1)
-      if (option === null) {
-        set({ sleepTimerEndsAt: null, sleepAtTrackEnd: false, sleepAtWorkEnd: false })
+      if (typeof option !== 'number') {
+        set({ sleepTimer: option === null ? null : { kind: option } })
         return
       }
-      if (option === 'track-end') {
-        set({ sleepAtTrackEnd: true, sleepAtWorkEnd: false, sleepTimerEndsAt: null })
-        return
-      }
-      if (option === 'work-end') {
-        set({ sleepAtWorkEnd: true, sleepAtTrackEnd: false, sleepTimerEndsAt: null })
-        return
-      }
-      set({
-        sleepTimerEndsAt: Date.now() + option * 60_000,
-        sleepAtTrackEnd: false,
-        sleepAtWorkEnd: false,
-      })
+      set({ sleepTimer: { kind: 'at', endsAt: Date.now() + option * 60_000 } })
       sleepTimeout = setTimeout(() => {
         sleepTimeout = null
         get().checkSleepTimer()
@@ -493,9 +485,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     checkSleepTimer: () => {
-      const { sleepTimerEndsAt } = get()
-      if (sleepTimerEndsAt === null) return
-      const remaining = sleepTimerEndsAt - Date.now()
+      const { sleepTimer } = get()
+      if (sleepTimer?.kind !== 'at') return
+      const remaining = sleepTimer.endsAt - Date.now()
       if (remaining > SLEEP_FADE_MS) return
       if (remaining > 0) {
         engine.setSleepFade(remaining / SLEEP_FADE_MS)
@@ -508,7 +500,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       engine.pause()
       // Restore full volume once paused, so a later resume isn't silent.
       engine.setSleepFade(1)
-      set({ sleepTimerEndsAt: null })
+      set({ sleepTimer: null })
     },
   }
 })

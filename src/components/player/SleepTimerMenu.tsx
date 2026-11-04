@@ -1,28 +1,30 @@
 import { useState } from 'react'
 import { useBackDismiss } from '../../hooks/useBackDismiss'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
-import { usePlayerStore } from '../../player/playerStore'
+import { usePlayerStore, type SleepTimerOption } from '../../player/playerStore'
 import { MoonIcon } from '../common/icons'
 
 const OPTIONS = [15, 30, 45, 60] as const
 
 export default function SleepTimerMenu() {
-  const sleepTimerEndsAt = usePlayerStore((s) => s.sleepTimerEndsAt)
-  const sleepAtTrackEnd = usePlayerStore((s) => s.sleepAtTrackEnd)
-  const sleepAtWorkEnd = usePlayerStore((s) => s.sleepAtWorkEnd)
+  const sleepTimer = usePlayerStore((s) => s.sleepTimer)
   const setSleepTimer = usePlayerStore((s) => s.setSleepTimer)
   const [open, setOpen] = useState(false)
   // A mobile back swipe closes the menu while it's open.
   useBackDismiss(() => setOpen(false), open)
   useEscapeKey(open, () => setOpen(false))
 
-  const active = sleepTimerEndsAt !== null || sleepAtTrackEnd || sleepAtWorkEnd
-  const remainingMin =
-    sleepTimerEndsAt !== null
-      ? Math.max(1, Math.ceil((sleepTimerEndsAt - Date.now()) / 60_000))
-      : null
+  const active = sleepTimer !== null
+  const status =
+    sleepTimer?.kind === 'at'
+      ? `${Math.max(1, Math.ceil((sleepTimer.endsAt - Date.now()) / 60_000))}m left`
+      : sleepTimer?.kind === 'track-end'
+        ? 'end of track'
+        : sleepTimer?.kind === 'work-end'
+          ? 'end of work'
+          : null
 
-  function pick(option: number | 'track-end' | 'work-end' | null) {
+  function pick(option: SleepTimerOption) {
     setSleepTimer(option)
     setOpen(false)
   }
@@ -50,15 +52,7 @@ export default function SleepTimerMenu() {
           <div className="absolute bottom-full right-0 z-40 mb-2 w-44 rounded-md border border-zinc-700 bg-zinc-800 py-1 shadow-xl">
             <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
               Sleep timer
-              {remainingMin !== null && (
-                <span className="ml-1 normal-case text-accent">· {remainingMin}m left</span>
-              )}
-              {sleepAtTrackEnd && (
-                <span className="ml-1 normal-case text-accent">· end of track</span>
-              )}
-              {sleepAtWorkEnd && (
-                <span className="ml-1 normal-case text-accent">· end of work</span>
-              )}
+              {status && <span className="ml-1 normal-case text-accent">· {status}</span>}
             </p>
             {OPTIONS.map((min) => (
               <button

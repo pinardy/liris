@@ -666,11 +666,11 @@ function wire(el: HTMLAudioElement) {
   el.addEventListener('ended', () => {
     if (el !== active) return
     const s = usePlayerStore.getState()
-    if (s.sleepAtTrackEnd) {
-      usePlayerStore.setState({ sleepAtTrackEnd: false, isPlaying: false })
+    if (s.sleepTimer?.kind === 'track-end') {
+      usePlayerStore.setState({ sleepTimer: null, isPlaying: false })
       return
     }
-    if (s.sleepAtWorkEnd) {
+    if (s.sleepTimer?.kind === 'work-end') {
       const idx = nextIndex(s.queue.length, s.currentIndex, s.repeat, true)
       const current = s.queue[s.currentIndex]
       const upcoming = idx === null ? undefined : s.queue[idx]
@@ -682,7 +682,7 @@ function wire(el: HTMLAudioElement) {
         idx === s.currentIndex ||
         !isSameWork(current, upcoming)
       ) {
-        usePlayerStore.setState({ sleepAtWorkEnd: false, isPlaying: false })
+        usePlayerStore.setState({ sleepTimer: null, isPlaying: false })
         return
       }
     }
