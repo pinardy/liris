@@ -198,7 +198,7 @@ describe('sleep timer fade', () => {
     usePlayerStore.getState().checkSleepTimer()
     expect(engine.pause).toHaveBeenCalled()
     expect(engine.setSleepFade).toHaveBeenLastCalledWith(1)
-    expect(usePlayerStore.getState().sleepTimerEndsAt).toBeNull()
+    expect(usePlayerStore.getState().sleepTimer).toBeNull()
   })
 
   it('cancelling a timer mid-fade restores full volume', () => {

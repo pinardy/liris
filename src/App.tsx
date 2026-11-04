@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import { Link, Routes, Route, useLocation } from 'react-router'
 import ErrorBoundary from './components/common/ErrorBoundary'
-import { onAppEvent } from './lib/appEvents'
+import { useUiStore } from './lib/uiStore'
 import ShortcutsHelp from './components/common/ShortcutsHelp'
 import Toaster from './components/common/Toaster'
 import Sidebar from './components/layout/Sidebar'
@@ -63,11 +63,9 @@ function PageErrorFallback(reset: () => void) {
 }
 
 function App() {
-  const [helpOpen, setHelpOpen] = useState(false)
-  const toggleHelp = useCallback(() => setHelpOpen((o) => !o), [])
-  useKeyboardShortcuts(toggleHelp)
-  // Lets Settings (and anything else) open the sheet without prop drilling.
-  useEffect(() => onAppEvent('show-shortcuts', () => setHelpOpen(true)), [])
+  const helpOpen = useUiStore((s) => s.helpOpen)
+  const setHelpOpen = useUiStore((s) => s.setHelpOpen)
+  useKeyboardShortcuts()
   const mainRef = useRef<HTMLElement>(null)
   const location = useLocation()
   return (
@@ -82,7 +80,7 @@ function App() {
       </a>
       {/* Landscape notches eat into the sides; inset the whole content area. */}
       <div className="px-safe flex min-h-0 flex-1">
-        <Sidebar onShowShortcuts={toggleHelp} />
+        <Sidebar />
         <main
           id="main"
           ref={mainRef}

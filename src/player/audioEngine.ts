@@ -1,5 +1,7 @@
 import { isSameWork } from '../lib/classical'
+import { toast } from '../lib/toast'
 import type { Track } from '../types/model'
+import * as fx from './audioFx'
 import {
   clearMediaSession,
   ensureMediaHandlers,
@@ -26,14 +28,8 @@ import { resolvePlayableUrl } from './resolveSource'
  *   crossOrigin — hence its own element. Radio therefore bypasses the EQ.
  */
 
-const FX_ENABLED_KEY = 'audio-fx-enabled'
 const CROSSFADE_KEY = 'player-crossfade'
 const CROSSFADE_MAX = 12
-
-/** Whether the equalizer/FX graph is switched on (persisted flag). */
-function fxEnabled(): boolean {
-  return localStorage.getItem(FX_ENABLED_KEY) === '1'
-}
 
 /** Crossfade duration in seconds (0 = off), clamped to a sane range. */
 export function crossfadeSec(): number {
@@ -59,7 +55,7 @@ function createElement(): HTMLAudioElement {
 
 const audio = createElement()
 const audioAlt = createElement()
-if (fxEnabled()) {
+if (fx.isFxEnabled()) {
   audio.crossOrigin = 'anonymous'
   audioAlt.crossOrigin = 'anonymous'
 }
@@ -81,7 +77,7 @@ function getRadioElement(): HTMLAudioElement {
   return radioAudio
 }
 
-/** The elements the equalizer graph attaches to. */
+/** The two gapless elements (exposed for tests). */
 export function getMainElements(): HTMLAudioElement[] {
   return [audio, audioAlt]
 }
@@ -126,10 +122,10 @@ function skipAfterError(track: Track) {
     // errored element instead of resolving the source again.
     currentLoad = null
     usePlayerStore.setState({ isPlaying: false, isLoading: false })
-    notifyHalt('offline')
+    notifyHalt("You're offline — only downloaded tracks can play.")
     return
   }
-  notifyTrackError(track)
+  toast(`Couldn't play “${track.title}” — skipped.`, { tone: 'error' })
   consecutiveErrors++
   const { queue } = usePlayerStore.getState()
   // Guard: if everything is failing, stop instead of skipping forever.
@@ -137,7 +133,7 @@ function skipAfterError(track: Track) {
     consecutiveErrors = 0
     currentLoad = null // as above: let the next Play retry from scratch
     usePlayerStore.setState({ isLoading: false })
-    notifyHalt('repeated-errors')
+    notifyHalt("Playback stopped — those tracks couldn't be loaded.")
     return
   }
   usePlayerStore.getState().next(true)
@@ -180,8 +176,7 @@ async function attemptPlay(load: NonNullable<typeof currentLoad>) {
   if (!radio) mainActive = el
   // Equalizer graph must exist before play; created here so the AudioContext
   // is born inside a user-gesture call stack.
-  if (!radio && fxEnabled()) {
-    const fx = await import('./audioFx')
+  if (!radio && fx.isFxEnabled()) {
     fx.ensureGraph(audio, audioAlt)
     fx.resumeContext()
   }
@@ -273,7 +268,7 @@ export async function loadAndPlay(track: Track): Promise<void> {
 
 /** Reload the current track in place (used when enabling the equalizer,
  *  which changes the element's CORS mode). Restores the play position. */
-export async function reloadCurrentTrack(): Promise<void> {
+async function reloadCurrentTrack(): Promise<void> {
   const s = usePlayerStore.getState()
   const track = s.queue[s.currentIndex]
   if (!track) return
@@ -283,6 +278,25 @@ export async function reloadCurrentTrack(): Promise<void> {
   const pos = active.currentTime
   await loadAndPlay(track)
   if (Number.isFinite(pos) && pos > 1 && !isRadioTrack(track)) seek(pos)
+}
+
+/** Turn the equalizer on: mark enabled, switch the elements to CORS loading,
+ *  build the graph and reload the current track so it picks up the new mode.
+ *  (A CORS-tainted source would output silence through the graph, so both
+ *  gapless elements must switch modes together.) */
+export async function enableEqualizer(): Promise<void> {
+  fx.setFxEnabled(true)
+  for (const el of [audio, audioAlt]) el.crossOrigin = 'anonymous'
+  fx.ensureGraph(audio, audioAlt)
+  fx.resumeContext()
+  await reloadCurrentTrack()
+}
+
+/** Flatten gains and stop attaching the graph in future sessions. (The graph
+ *  can't be detached from the element within this session.) */
+export function disableEqualizer(): void {
+  fx.setFxEnabled(false)
+  fx.resetGains()
 }
 
 /** Id of the track the engine currently has loaded, or null before any load.
@@ -310,9 +324,7 @@ export function stop(): void {
 }
 
 export function play(): void {
-  if (fxEnabled() && active !== radioAudio) {
-    void import('./audioFx').then((fx) => fx.resumeContext())
-  }
+  if (fx.isFxEnabled() && active !== radioAudio) fx.resumeContext()
   active.play().catch(() => usePlayerStore.setState({ isPlaying: false }))
 }
 
@@ -489,11 +501,9 @@ function startCrossfade(secs: number, nextIdx: number) {
     preloadedEl: el,
   }
 
-  if (fxEnabled()) {
-    void import('./audioFx').then((fx) => {
-      fx.ensureGraph(audio, audioAlt)
-      fx.resumeContext()
-    })
+  if (fx.isFxEnabled()) {
+    fx.ensureGraph(audio, audioAlt)
+    fx.resumeContext()
   }
 
   const { volume, muted } = usePlayerStore.getState()
@@ -561,39 +571,14 @@ if (typeof document !== 'undefined') {
     usePlayerStore.getState().checkSleepTimer()
     // Mobile browsers suspend AudioContexts when backgrounded; bring ours back
     // so the equalizer keeps working after a return to the app.
-    if (fxEnabled() && active !== radioAudio) {
-      void import('./audioFx').then((fx) => fx.resumeContext())
-    }
+    if (fx.isFxEnabled() && active !== radioAudio) fx.resumeContext()
   })
 }
 
-// ---- error toast plumbing (UI subscribes) ----
-
-type TrackErrorListener = (track: Track) => void
-const errorListeners = new Set<TrackErrorListener>()
-
-export function onTrackError(listener: TrackErrorListener): () => void {
-  errorListeners.add(listener)
-  return () => errorListeners.delete(listener)
-}
-
-function notifyTrackError(track: Track) {
-  errorListeners.forEach((l) => l(track))
-}
-
-/** Why playback stopped rather than advancing to the next track. */
-export type HaltReason = 'offline' | 'repeated-errors'
-
-type HaltListener = (reason: HaltReason) => void
-const haltListeners = new Set<HaltListener>()
-
-export function onPlaybackHalt(listener: HaltListener): () => void {
-  haltListeners.add(listener)
-  return () => haltListeners.delete(listener)
-}
-
-function notifyHalt(reason: HaltReason) {
-  haltListeners.forEach((l) => l(reason))
+/** Playback gave up rather than skipping on: this needs longer on screen
+ *  than a per-track notice, because nothing is playing now. */
+function notifyHalt(message: string) {
+  toast(message, { tone: 'error', durationMs: 7000 })
 }
 
 // ---- element events -> store sync (guarded so only the active element counts) ----
@@ -681,11 +666,11 @@ function wire(el: HTMLAudioElement) {
   el.addEventListener('ended', () => {
     if (el !== active) return
     const s = usePlayerStore.getState()
-    if (s.sleepAtTrackEnd) {
-      usePlayerStore.setState({ sleepAtTrackEnd: false, isPlaying: false })
+    if (s.sleepTimer?.kind === 'track-end') {
+      usePlayerStore.setState({ sleepTimer: null, isPlaying: false })
       return
     }
-    if (s.sleepAtWorkEnd) {
+    if (s.sleepTimer?.kind === 'work-end') {
       const idx = nextIndex(s.queue.length, s.currentIndex, s.repeat, true)
       const current = s.queue[s.currentIndex]
       const upcoming = idx === null ? undefined : s.queue[idx]
@@ -697,7 +682,7 @@ function wire(el: HTMLAudioElement) {
         idx === s.currentIndex ||
         !isSameWork(current, upcoming)
       ) {
-        usePlayerStore.setState({ sleepAtWorkEnd: false, isPlaying: false })
+        usePlayerStore.setState({ sleepTimer: null, isPlaying: false })
         return
       }
     }

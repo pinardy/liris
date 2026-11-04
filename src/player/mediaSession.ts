@@ -1,4 +1,5 @@
 import type { Track } from '../types/model'
+import { usePlayerStore } from './playerStore'
 import { resolveArtworkUrl } from './resolveSource'
 
 /**
@@ -73,35 +74,32 @@ export function updatePositionState(audio: HTMLAudioElement): void {
 function registerHandlers(): void {
   if (handlersRegistered) return
   handlersRegistered = true
-  // Imported lazily at call time to avoid a module-init cycle with the store.
-  void import('./playerStore').then(({ usePlayerStore }) => {
-    const actions = () => usePlayerStore.getState()
-    const ms = navigator.mediaSession
-    // Explicitly directional, never a toggle: the OS can send a duplicate
-    // 'play' (headset resume, end of a call, some Android ROMs), and a
-    // toggling handler would pause the music instead.
-    ms.setActionHandler('play', () => {
-      const s = actions()
-      if (!s.isPlaying) s.togglePlay()
-    })
-    ms.setActionHandler('pause', () => {
-      const s = actions()
-      if (s.isPlaying) s.togglePlay()
-    })
-    ms.setActionHandler('stop', () => {
-      const s = actions()
-      if (s.isPlaying) s.togglePlay()
-    })
-    ms.setActionHandler('previoustrack', () => actions().prev())
-    ms.setActionHandler('nexttrack', () => actions().next())
-    ms.setActionHandler('seekto', (e) => {
-      if (typeof e.seekTime === 'number') actions().seek(e.seekTime)
-    })
-    ms.setActionHandler('seekbackward', (e) => {
-      actions().seek(Math.max(0, actions().positionSec - (e.seekOffset ?? 10)))
-    })
-    ms.setActionHandler('seekforward', (e) => {
-      actions().seek(actions().positionSec + (e.seekOffset ?? 10))
-    })
+  const actions = () => usePlayerStore.getState()
+  const ms = navigator.mediaSession
+  // Explicitly directional, never a toggle: the OS can send a duplicate
+  // 'play' (headset resume, end of a call, some Android ROMs), and a
+  // toggling handler would pause the music instead.
+  ms.setActionHandler('play', () => {
+    const s = actions()
+    if (!s.isPlaying) s.togglePlay()
+  })
+  ms.setActionHandler('pause', () => {
+    const s = actions()
+    if (s.isPlaying) s.togglePlay()
+  })
+  ms.setActionHandler('stop', () => {
+    const s = actions()
+    if (s.isPlaying) s.togglePlay()
+  })
+  ms.setActionHandler('previoustrack', () => actions().prev())
+  ms.setActionHandler('nexttrack', () => actions().next())
+  ms.setActionHandler('seekto', (e) => {
+    if (typeof e.seekTime === 'number') actions().seek(e.seekTime)
+  })
+  ms.setActionHandler('seekbackward', (e) => {
+    actions().seek(Math.max(0, actions().positionSec - (e.seekOffset ?? 10)))
+  })
+  ms.setActionHandler('seekforward', (e) => {
+    actions().seek(actions().positionSec + (e.seekOffset ?? 10))
   })
 }

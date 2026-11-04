@@ -27,13 +27,14 @@ export default function Home() {
   const { data: index, error, loading } = useClassicalIndex()
   const recentTracks = useLiveQuery(() => getRecentTracks(6), [])
   const radiosState = useAsync(() => getRadios(12), [], true, 'home:radios')
-  const statsState = useAsync(getListeningStats, [], true, 'home:stats')
+  // Live, not session-cached: the mix must reflect today's listening.
+  const stats = useLiveQuery(getListeningStats, [])
   const playQueue = usePlayerStore((s) => s.playQueue)
   const playTrack = usePlayerStore((s) => s.playTrack)
   const startRadio = usePlayerStore((s) => s.startRadio)
 
   const mixWorks =
-    index && statsState.data ? dailyMixWorks(index, statsState.data) : []
+    index && stats ? dailyMixWorks(index, stats) : []
 
   async function playRadio(station: RadioStation) {
     try {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getArtworkBlob } from '../services/db/library'
 import type { Track } from '../types/model'
 
 /**
@@ -17,8 +18,7 @@ export function useTrackArtwork(track?: Track): string | undefined {
     }
     let url: string | undefined
     let cancelled = false
-    void import('../services/db/library').then(async ({ getArtworkBlob }) => {
-      const blob = await getArtworkBlob(artworkKey)
+    void getArtworkBlob(artworkKey).then((blob) => {
       if (blob && !cancelled) {
         url = URL.createObjectURL(blob)
         setBlobUrl(url)

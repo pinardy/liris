@@ -16,11 +16,6 @@ export interface FavoriteRecord {
   addedAt: number
 }
 
-export interface RecentRecord {
-  trackId: string
-  playedAt: number
-}
-
 /**
  * One row per play, append-only — the raw material for listening stats.
  * Composer/work/duration are denormalized at write time so aggregation never
@@ -71,7 +66,6 @@ export const db = new Dexie('music-player') as Dexie & {
   artwork: EntityTable<ArtworkRecord, 'key'>
   playlists: EntityTable<Playlist, 'id'>
   favorites: EntityTable<FavoriteRecord, 'trackId'>
-  recentlyPlayed: EntityTable<RecentRecord, 'trackId'>
   plays: EntityTable<PlayRecord, 'id'>
   cache: EntityTable<CacheRecord, 'key'>
   smartPlaylists: EntityTable<SmartPlaylist, 'id'>
@@ -101,4 +95,10 @@ db.version(4).stores({
 
 db.version(5).stores({
   bookmarks: 'id, createdAt',
+})
+
+// Recently played is now derived from the `plays` log (newest distinct
+// tracks), so the separate table that mirrored it is dropped.
+db.version(6).stores({
+  recentlyPlayed: null,
 })

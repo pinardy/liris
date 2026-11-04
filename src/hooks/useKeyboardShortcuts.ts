@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
-import { emitAppEvent } from '../lib/appEvents'
+import { useUiStore } from '../lib/uiStore'
 import { PLAYBACK_RATES, usePlayerStore } from '../player/playerStore'
 
 function isTypingTarget(el: EventTarget | null): boolean {
@@ -28,8 +28,8 @@ export const SHORTCUTS: { keys: string; action: string }[] = [
   { keys: '?', action: 'This help' },
 ]
 
-/** Global shortcuts. `onToggleHelp` opens/closes the shortcuts sheet ('?'). */
-export function useKeyboardShortcuts(onToggleHelp: () => void): void {
+/** Global shortcuts. */
+export function useKeyboardShortcuts(): void {
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export function useKeyboardShortcuts(onToggleHelp: () => void): void {
       // Key (not code) for the two layout-dependent ones.
       if (e.key === '?') {
         e.preventDefault()
-        onToggleHelp()
+        useUiStore.getState().toggleHelp()
         return
       }
       if (e.key === '/') {
@@ -104,7 +104,7 @@ export function useKeyboardShortcuts(onToggleHelp: () => void): void {
           state.cycleRepeat()
           break
         case 'KeyQ':
-          if (hasTrack) emitAppEvent('toggle-queue')
+          if (hasTrack) useUiStore.getState().toggleQueue()
           break
         case 'Comma':
         case 'Period': {
@@ -123,5 +123,5 @@ export function useKeyboardShortcuts(onToggleHelp: () => void): void {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [navigate, onToggleHelp])
+  }, [navigate])
 }

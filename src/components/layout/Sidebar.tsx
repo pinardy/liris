@@ -1,7 +1,9 @@
 import { NavLink } from 'react-router'
+import { useUiStore } from '../../lib/uiStore'
 import { navItems } from './navItems'
 
-export default function Sidebar({ onShowShortcuts }: { onShowShortcuts: () => void }) {
+export default function Sidebar() {
+  const toggleHelp = useUiStore((s) => s.toggleHelp)
   return (
     <aside className="hidden w-60 shrink-0 flex-col gap-1 border-r border-zinc-800 bg-black p-4 md:flex">
       <div className="mb-6 flex items-center gap-2.5 px-2">
@@ -93,7 +95,7 @@ export default function Sidebar({ onShowShortcuts }: { onShowShortcuts: () => vo
               '?' — nothing in the UI pointed at it. */}
           <button
             type="button"
-            onClick={onShowShortcuts}
+            onClick={toggleHelp}
             className="px-3 text-left text-xs font-medium text-zinc-400 transition-colors hover:text-white"
           >
             Keyboard shortcuts{' '}

@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useBackDismiss } from '../../hooks/useBackDismiss'
-import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { isIOS } from '../../lib/platform'
+import { disableEqualizer, enableEqualizer } from '../../player/audioEngine'
 import {
   EQ_BAND_LABELS,
   EQ_GAIN_RANGE,
-  disableFx,
-  enableFx,
   getAnalyser,
   isFxEnabled,
   loadGains,
@@ -15,6 +12,7 @@ import {
 } from '../../player/audioFx'
 import Button from '../common/Button'
 import { SlidersIcon } from '../common/icons'
+import Popover from '../common/Popover'
 
 function Visualizer() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -57,10 +55,6 @@ function Visualizer() {
 }
 
 export default function EqualizerPanel() {
-  const [open, setOpen] = useState(false)
-  // A mobile back swipe closes the panel while it's open.
-  useBackDismiss(() => setOpen(false), open)
-  useEscapeKey(open, () => setOpen(false))
   const [enabled, setEnabled] = useState(isFxEnabled)
   const [gains, setGains] = useState(loadGains)
   const [enabling, setEnabling] = useState(false)
@@ -68,7 +62,7 @@ export default function EqualizerPanel() {
   async function handleEnable() {
     setEnabling(true)
     try {
-      await enableFx()
+      await enableEqualizer()
       setEnabled(true)
       setGains(loadGains())
     } finally {
@@ -77,7 +71,7 @@ export default function EqualizerPanel() {
   }
 
   function handleDisable() {
-    disableFx()
+    disableEqualizer()
     setEnabled(false)
     setGains(loadGains())
   }
@@ -88,104 +82,91 @@ export default function EqualizerPanel() {
   }
 
   return (
-    <span className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-label="Equalizer"
-        aria-expanded={open}
-        className={`flex size-11 items-center justify-center ${enabled ? 'text-accent' : 'text-zinc-400 hover:text-white'}`}
-      >
-        <SlidersIcon width="18" height="18" />
-      </button>
-
-      {open && (
+    <Popover
+      label="Equalizer"
+      active={enabled}
+      trigger={<SlidersIcon width="18" height="18" />}
+      closeLabel="Close equalizer"
+      panelClassName="w-72 p-4"
+    >
+      {() => (
         <>
-          <button
-            type="button"
-            aria-label="Close equalizer"
-            className="fixed inset-0 z-30 cursor-default"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute bottom-full right-0 z-40 mb-2 w-72 rounded-md border border-zinc-700 bg-zinc-800 p-4 shadow-xl">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-              Equalizer
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Equalizer
+          </p>
+
+          {isIOS && (
+            <p className="mb-3 rounded bg-amber-950/40 p-2 text-[11px] leading-snug text-amber-300">
+              On iOS the equalizer routes audio through Web Audio, which can interrupt
+              playback when the app is backgrounded or the screen locks. Leave it off for
+              lock-screen listening.
             </p>
+          )}
 
-            {isIOS && (
-              <p className="mb-3 rounded bg-amber-950/40 p-2 text-[11px] leading-snug text-amber-300">
-                On iOS the equalizer routes audio through Web Audio, which can
-                interrupt playback when the app is backgrounded or the screen
-                locks. Leave it off for lock-screen listening.
+          {!enabled ? (
+            <>
+              <p className="mb-3 text-sm text-zinc-300">
+                Shape the sound with a 5-band equalizer and live spectrum visualizer.
               </p>
-            )}
-
-            {!enabled ? (
-              <>
-                <p className="mb-3 text-sm text-zinc-300">
-                  Shape the sound with a 5-band equalizer and live spectrum
-                  visualizer.
-                </p>
-                <Button
-                  size="sm"
-                  onClick={() => void handleEnable()}
-                  disabled={enabling}
-                  className="w-full"
-                >
-                  {enabling ? 'Enabling…' : 'Enable equalizer'}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Visualizer />
-                {EQ_BAND_LABELS.map((label, i) => (
-                  <div key={label} className="mb-1.5 flex items-center gap-2">
-                    <span className="w-8 text-right text-[11px] tabular-nums text-zinc-400">
-                      {label}
-                    </span>
-                    <input
-                      type="range"
-                      min={-EQ_GAIN_RANGE}
-                      max={EQ_GAIN_RANGE}
-                      step={1}
-                      value={gains[i]}
-                      aria-label={`${label} Hz gain`}
-                      aria-valuetext={`${gains[i] > 0 ? '+' : ''}${gains[i]} decibels`}
-                      onChange={(e) => handleGain(i, Number(e.target.value))}
-                      className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-zinc-600 accent-accent"
-                    />
-                    <span className="w-9 text-[11px] tabular-nums text-zinc-400">
-                      {gains[i] > 0 ? `+${gains[i]}` : gains[i]} dB
-                    </span>
-                  </div>
-                ))}
-                <div className="mt-3 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      resetGains()
-                      setGains(loadGains())
-                    }}
-                    className="text-xs text-zinc-400 hover:text-white"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDisable}
-                    className="text-xs text-red-300 hover:text-red-200"
-                  >
-                    Turn off
-                  </button>
+              <Button
+                size="sm"
+                onClick={() => void handleEnable()}
+                disabled={enabling}
+                className="w-full"
+              >
+                {enabling ? 'Enabling…' : 'Enable equalizer'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Visualizer />
+              {EQ_BAND_LABELS.map((label, i) => (
+                <div key={label} className="mb-1.5 flex items-center gap-2">
+                  <span className="w-8 text-right text-[11px] tabular-nums text-zinc-400">
+                    {label}
+                  </span>
+                  <input
+                    type="range"
+                    min={-EQ_GAIN_RANGE}
+                    max={EQ_GAIN_RANGE}
+                    step={1}
+                    value={gains[i]}
+                    aria-label={`${label} Hz gain`}
+                    aria-valuetext={`${gains[i] > 0 ? '+' : ''}${gains[i]} decibels`}
+                    onChange={(e) => handleGain(i, Number(e.target.value))}
+                    className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-zinc-600 accent-accent"
+                  />
+                  <span className="w-9 text-[11px] tabular-nums text-zinc-400">
+                    {gains[i] > 0 ? `+${gains[i]}` : gains[i]} dB
+                  </span>
                 </div>
-                <p className="mt-3 text-[11px] leading-snug text-zinc-400">
-                  Radio streams bypass the equalizer.
-                </p>
-              </>
-            )}
-          </div>
+              ))}
+              <div className="mt-3 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetGains()
+                    setGains(loadGains())
+                  }}
+                  className="text-xs text-zinc-400 hover:text-white"
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDisable}
+                  className="text-xs text-red-300 hover:text-red-200"
+                >
+                  Turn off
+                </button>
+              </div>
+              <p className="mt-3 text-[11px] leading-snug text-zinc-400">
+                Radio streams bypass the equalizer.
+              </p>
+            </>
+          )}
         </>
       )}
-    </span>
+    </Popover>
   )
 }

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { useTrackArtwork } from '../../hooks/useTrackArtwork'
 import { useSwipe } from '../../hooks/useSwipe'
-import { onAppEvent } from '../../lib/appEvents'
+import { useUiStore } from '../../lib/uiStore'
 import { workIdForTrack } from '../../lib/classical'
 import { formatDuration } from '../../lib/format'
 import { usePlayerStore, selectCurrentTrack } from '../../player/playerStore'
@@ -43,13 +43,12 @@ export default function PlayerBar() {
   const prev = usePlayerStore((s) => s.prev)
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle)
   const cycleRepeat = usePlayerStore((s) => s.cycleRepeat)
-  const [queueOpen, setQueueOpen] = useState(false)
+  const queueOpen = useUiStore((s) => s.queueOpen)
+  const setQueueOpen = useUiStore((s) => s.setQueueOpen)
+  const toggleQueue = useUiStore((s) => s.toggleQueue)
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false)
   const artworkUrl = useTrackArtwork(track)
   const workId = track ? workIdForTrack(track) : undefined
-
-  // The 'Q' keyboard shortcut lives outside this component.
-  useEffect(() => onAppEvent('toggle-queue', () => setQueueOpen((o) => !o)), [])
 
   // Phone gestures on the bar itself: flick up for the full view, sideways to
   // skip — which is why 'previous' can be dropped from the cramped mobile row.
@@ -210,7 +209,7 @@ export default function PlayerBar() {
             {/* Queue is the one secondary control worth a slot on mobile. */}
             <button
               type="button"
-              onClick={() => setQueueOpen((o) => !o)}
+              onClick={toggleQueue}
               aria-label="Toggle queue"
               className={`flex size-11 items-center justify-center md:hidden ${
                 queueOpen ? 'text-accent' : 'text-zinc-400'
@@ -232,7 +231,7 @@ export default function PlayerBar() {
           <SleepTimerMenu />
           <button
             type="button"
-            onClick={() => setQueueOpen((o) => !o)}
+            onClick={toggleQueue}
             aria-label="Toggle queue"
             className={`flex size-11 items-center justify-center ${
               queueOpen ? 'text-accent' : 'text-zinc-400 hover:text-white'

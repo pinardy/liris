@@ -1,4 +1,5 @@
 import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useOverlayDismiss } from '../../hooks/useOverlayDismiss'
 import { toast } from '../../lib/toast'
 import { usePlayerStore } from '../../player/playerStore'
 import {
@@ -50,18 +51,19 @@ export default function TrackActions({
     setDropUp(rect.bottom + menuHeight + 16 > window.innerHeight)
   }, [menuOpen])
 
+  function closeMenu() {
+    setMenuOpen(false)
+    triggerRef.current?.focus()
+  }
+  useOverlayDismiss(closeMenu, menuOpen)
+
+  // Arrow keys rove through the items (the only role="menu" in the app).
   useEffect(() => {
     if (!menuOpen) return
     const menu = menuRef.current
     menu?.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
 
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        setMenuOpen(false)
-        triggerRef.current?.focus()
-        return
-      }
       if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
       const items = Array.from(
         menu?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
@@ -75,11 +77,6 @@ export default function TrackActions({
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
   }, [menuOpen])
-
-  function closeMenu() {
-    setMenuOpen(false)
-    triggerRef.current?.focus()
-  }
 
   async function handleDownload() {
     setDownloading(true)
