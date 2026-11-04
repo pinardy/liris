@@ -2,41 +2,29 @@ import type { Track } from '../../types/model'
 import { db, type PlayRecord } from './db'
 import { ensureTrackSnapshot, getTracksByIds } from './snapshot'
 
-const MAX_RECENTS = 50
 /** Years of listening at heavy use; a full-table scan of this stays instant. */
 const MAX_PLAYS = 20_000
 
 /** Wipe play history and the stats built from it (playlists/favorites are
  *  untouched). Used by the Settings "clear listening history" action. */
 export async function clearListeningData(): Promise<void> {
-  await db.transaction('rw', [db.recentlyPlayed, db.plays], async () => {
-    await db.recentlyPlayed.clear()
-    await db.plays.clear()
-  })
+  await db.plays.clear()
 }
 
+/** Append to the play log, which feeds recents, history and stats.
+ *  Composer/work are denormalized on purpose so stats survive pruned
+ *  snapshots. */
 export async function recordPlay(track: Track): Promise<void> {
   // Live radio streams have session-ish URLs and no fixed content — don't record.
   if (track.id.startsWith('radio:')) return
   await ensureTrackSnapshot(track)
-  const now = Date.now()
-  await db.recentlyPlayed.put({ trackId: track.id, playedAt: now })
-  // Append to the play history (stats). Composer/work denormalized on purpose.
   await db.plays.add({
     trackId: track.id,
     composer: track.artist,
     work: track.album ?? track.title,
     durationSec: track.durationSec,
-    playedAt: now,
+    playedAt: Date.now(),
   })
-  const count = await db.recentlyPlayed.count()
-  if (count > MAX_RECENTS) {
-    const oldest = await db.recentlyPlayed
-      .orderBy('playedAt')
-      .limit(count - MAX_RECENTS)
-      .toArray()
-    await db.recentlyPlayed.bulkDelete(oldest.map((r) => r.trackId))
-  }
   const playCount = await db.plays.count()
   if (playCount > MAX_PLAYS) {
     const oldestKeys = await db.plays
@@ -47,13 +35,15 @@ export async function recordPlay(track: Track): Promise<void> {
   }
 }
 
+/** The most recently played distinct tracks, newest first. */
 export async function getRecentTracks(limit = 10): Promise<Track[]> {
-  const recents = await db.recentlyPlayed
+  const ids = new Set<string>()
+  await db.plays
     .orderBy('playedAt')
     .reverse()
-    .limit(limit)
-    .toArray()
-  return getTracksByIds(recents.map((r) => r.trackId))
+    .until(() => ids.size >= limit)
+    .each((p) => ids.add(p.trackId))
+  return getTracksByIds([...ids])
 }
 
 export interface HistoryEntry {
