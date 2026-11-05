@@ -1,6 +1,7 @@
 import { downloadKey } from '../services/db/downloads'
 import { getArtworkBlob, getFileBlob } from '../services/db/library'
 import type { Track } from '../types/model'
+import { trackArtworkUrl } from '../lib/classical'
 
 /**
  * Resolve a Track to a URL the audio element can play.
@@ -31,7 +32,8 @@ export async function resolvePlayableUrl(
 
 /** Resolve artwork for the Media Session / now-playing UI. */
 export async function resolveArtworkUrl(track: Track): Promise<string | undefined> {
-  if (track.artworkUrl) return track.artworkUrl
+  const remote = trackArtworkUrl(track)
+  if (remote) return remote
   if (track.source === 'local' && track.local?.artworkKey) {
     const blob = await getArtworkBlob(track.local.artworkKey)
     if (blob) return URL.createObjectURL(blob)
