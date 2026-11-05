@@ -4,7 +4,7 @@ import ArtworkImage from '../components/common/ArtworkImage'
 import ChipSection from '../components/common/Chip'
 import PlayButton from '../components/common/PlayButton'
 import { ErrorMessage, Spinner } from '../components/common/Status'
-import { PlayIcon } from '../components/common/icons'
+import { PlayIcon, SparklesIcon } from '../components/common/icons'
 import ComposerAvatar from '../components/classical/ComposerAvatar'
 import WorkCard from '../components/classical/WorkCard'
 import TrackList from '../components/tracks/TrackList'
@@ -24,6 +24,7 @@ import {
 import { getRadios, getRadioTrack, type RadioStation } from '../services/jamendo/api'
 import { plural } from '../lib/format'
 import Button from '../components/common/Button'
+import { toast } from '../lib/toast'
 
 export default function Home() {
   const { data: index, error, loading, retry } = useClassicalIndex()
@@ -68,6 +69,26 @@ export default function Home() {
     ? instruments.filter((i) => (index.byInstrument.get(i.slug)?.length ?? 0) > 0)
     : []
 
+  // One tap into something you didn't choose: the cheapest kind of discovery.
+  function surprise() {
+    if (!index || index.works.length === 0) return
+    const work = index.works[Math.floor(Math.random() * index.works.length)]
+    playQueue(workTracks(work), 0)
+    toast(`Playing ${work.title} — ${work.composerName}`)
+  }
+  const surpriseButton = index && index.works.length > 0 && (
+    <Button
+      variant="subtle"
+      size="sm"
+      onClick={surprise}
+      title="Play a random work from the catalog"
+      className="shrink-0 whitespace-nowrap"
+    >
+      <SparklesIcon width="14" height="14" />
+      Surprise me
+    </Button>
+  )
+
   // The pitch earns its space once. A returning listener (anything in the
   // play log) gets a one-line masthead and their music above the fold.
   const returning = (recentTracks?.length ?? 0) > 0
@@ -85,7 +106,10 @@ export default function Home() {
           <h1 className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
             Liris Classical
           </h1>
-          {index && <p className="text-xs text-zinc-400">{counts}</p>}
+          <span className="flex items-center gap-3">
+            {index && <p className="hidden text-xs text-zinc-400 sm:block">{counts}</p>}
+            {surpriseButton}
+          </span>
         </section>
       ) : (
         <section className="mb-10 rounded-2xl bg-gradient-to-br from-indigo-900 via-zinc-900 to-zinc-950 p-6 md:p-10">
@@ -99,7 +123,10 @@ export default function Home() {
             Browse by composer, period and form. Every recording here is public domain
             or Creative Commons — yours to stream, download and keep offline.
           </p>
-          {index && <p className="mt-4 text-xs text-zinc-400">{counts}</p>}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {surpriseButton}
+            {index && <p className="text-xs text-zinc-400">{counts}</p>}
+          </div>
         </section>
       )}
 

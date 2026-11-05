@@ -6,9 +6,12 @@ import {
   isSameWork,
   movementPosition,
   normalizeWorkTitle,
+  relatedWorks,
   slugify,
+  trackArtworkUrl,
   workIdForTrack,
   workSlice,
+  type Work,
 } from './classical'
 
 describe('detectCatalogue', () => {
@@ -177,5 +180,54 @@ describe('workSlice and movementPosition', () => {
     expect(movementPosition(queue, 1)).toEqual({ n: 2, total: 2 })
     expect(movementPosition(queue, 2)).toBeUndefined()
     expect(movementPosition(queue, 3)).toBeUndefined()
+  })
+})
+
+describe('artwork', () => {
+  it('shows the composer portrait for catalog recordings and own art otherwise', () => {
+    const bach: Track = {
+      id: 'arc:x:y',
+      source: 'archive',
+      title: 'Aria',
+      artist: 'Johann Sebastian Bach',
+      album: 'Goldberg Variations',
+      durationSec: 1,
+      artworkUrl: 'https://archive.org/services/img/x',
+      addedAt: 0,
+    }
+    expect(trackArtworkUrl(bach)).toContain('commons.wikimedia.org')
+    const local: Track = { ...bach, id: 'loc:1', source: 'local', artworkUrl: undefined }
+    expect(trackArtworkUrl(local)).toBeUndefined()
+    const jam: Track = { ...bach, id: 'jam:1', source: 'jamendo', artworkUrl: 'https://j/cover.jpg' }
+    expect(trackArtworkUrl(jam)).toBe('https://j/cover.jpg')
+  })
+})
+
+describe('relatedWorks', () => {
+  const w = (id: string, composerSlug: string, formSlug?: string): Work => ({
+    id,
+    title: id,
+    composerName: composerSlug,
+    composerSlug,
+    formSlug,
+    recordings: [],
+  })
+  const works = [
+    w('b5', 'beethoven', 'symphony'),
+    w('b3', 'beethoven', 'symphony'),
+    w('b-sonata', 'beethoven', 'sonata'),
+    w('brahms4', 'brahms', 'symphony'),
+    w('dvorak9', 'dvorak', 'symphony'),
+    w('chopin', 'chopin', 'piano-pieces'),
+  ]
+
+  it('lists the composer first, then the form by other composers, never itself', () => {
+    const { byComposer, byForm } = relatedWorks({ works }, works[0])
+    expect(byComposer.map((x) => x.id)).toEqual(['b3', 'b-sonata'])
+    expect(byForm.map((x) => x.id)).toEqual(['brahms4', 'dvorak9'])
+  })
+
+  it('has no form suggestions for a work without a detected form', () => {
+    expect(relatedWorks({ works }, w('z', 'zed')).byForm).toEqual([])
   })
 })

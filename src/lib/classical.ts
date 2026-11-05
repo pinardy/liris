@@ -1,5 +1,6 @@
+import type { ClassicalIndex } from '../services/archive/classicalIndex'
 import type { Track } from '../types/model'
-import { findComposer, type Period } from './composers'
+import { composerImageUrl, findComposer, type Period } from './composers'
 
 /** Musical forms we can reliably detect from work titles. */
 export interface Form {
@@ -208,8 +209,47 @@ export function workDuration(work: Work): number {
   return work.recordings[0]?.durationSec ?? 0
 }
 
+/**
+ * Artwork for a work: the composer's portrait where one is curated. The
+ * collection thumbnail is one logo shared by every work in that edition, so
+ * a grid of works would otherwise be a grid of identical logos.
+ */
 export function workArtwork(work: Work): string | undefined {
-  return work.recordings[0]?.artworkUrl
+  const portrait = work.composerSlug && composerImageUrl(work.composerSlug, 400)
+  return portrait || work.recordings[0]?.artworkUrl
+}
+
+/** Artwork for a track, by the same rule: catalog recordings show their
+ *  composer; everything else (imported files, Jamendo, radio) its own art.
+ *  Used for lists, the player and the lock screen alike. */
+export function trackArtworkUrl(track: Track): string | undefined {
+  if (track.source === 'archive') {
+    const composer = findComposer(track.artist)
+    const portrait = composer && composerImageUrl(composer.slug, 512)
+    if (portrait) return portrait
+  }
+  return track.artworkUrl
+}
+
+/**
+ * What to listen to next from a work's page: more by the same composer,
+ * then more of the same form by others. Works are already in catalog order
+ * (multi-movement first), so the first few are good entry points.
+ */
+export function relatedWorks(
+  index: Pick<ClassicalIndex, 'works'>,
+  work: Work,
+  limit = 4,
+): { byComposer: Work[]; byForm: Work[] } {
+  const sameComposer = (w: Work) =>
+    work.composerSlug ? w.composerSlug === work.composerSlug : w.composerName === work.composerName
+  const others = index.works.filter((w) => w.id !== work.id)
+  return {
+    byComposer: others.filter(sameComposer).slice(0, limit),
+    byForm: work.formSlug
+      ? others.filter((w) => w.formSlug === work.formSlug && !sameComposer(w)).slice(0, limit)
+      : [],
+  }
 }
 
 export function workPerformers(work: Work): string[] {

@@ -12,14 +12,36 @@ import { PlayIcon } from '../components/common/icons'
 import { AsyncGate, EmptyState } from '../components/common/Status'
 import TrackList from '../components/tracks/TrackList'
 import { useClassicalIndex } from '../hooks/useClassicalIndex'
-import { formBySlug } from '../lib/classical'
+import { formBySlug, relatedWorks, workArtwork, type Work } from '../lib/classical'
 import { formatDuration, plural } from '../lib/format'
-import { composerBySlug, composerImageUrl } from '../lib/composers'
+import { composerBySlug } from '../lib/composers'
 import { detectInstruments, instrumentBySlug } from '../lib/performers'
 import { imslpSearchUrl } from '../lib/imslp'
 import { sungTextFor } from '../lib/libretti'
 import { usePlayerStore } from '../player/playerStore'
 import { searchSummary } from '../services/wikipedia'
+import WorkCard from '../components/classical/WorkCard'
+
+/** A row of up to four work tiles with a heading that links to the full list. */
+function RelatedSection({ title, to, works }: { title: string; to?: string; works: Work[] }) {
+  return (
+    <section className="mt-8">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">{title}</h2>
+        {to && (
+          <Link to={to} className="text-xs text-zinc-400 hover:text-white">
+            See all →
+          </Link>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {works.map((w) => (
+          <WorkCard key={w.id} work={w} />
+        ))}
+      </div>
+    </section>
+  )
+}
 
 export default function WorkPage() {
   const { id } = useParams()
@@ -62,10 +84,7 @@ export default function WorkPage() {
     ? (composerBySlug(work.composerSlug)?.surname ?? work.composerName)
     : work.composerName
   const sungText = sungTextFor(work)
-  // The collection thumbnail is one logo shared by every work in that
-  // edition; the composer's portrait actually identifies this page.
-  const artwork =
-    (work.composerSlug && composerImageUrl(work.composerSlug, 400)) || recording.artworkUrl
+  const related = relatedWorks(index!, work)
 
   return (
     <>
@@ -73,7 +92,7 @@ export default function WorkPage() {
       <DetailHeader
         artwork={
           <ArtworkImage
-            src={artwork}
+            src={workArtwork(work)}
             className="size-28 sm:size-48"
             rounded="rounded-lg"
           />
@@ -190,6 +209,21 @@ export default function WorkPage() {
       />
 
       <TermChips texts={[work.title, ...recording.tracks.map((t) => t.title)]} />
+
+      {related.byComposer.length > 0 && (
+        <RelatedSection
+          title={`More by ${surname}`}
+          to={work.composerSlug ? `/composer/${work.composerSlug}` : undefined}
+          works={related.byComposer}
+        />
+      )}
+      {related.byForm.length > 0 && form && (
+        <RelatedSection
+          title={`More ${form.label.toLowerCase()}`}
+          to={`/form/${form.slug}`}
+          works={related.byForm}
+        />
+      )}
 
       <p className="mt-6 text-xs text-zinc-500">
         From{' '}

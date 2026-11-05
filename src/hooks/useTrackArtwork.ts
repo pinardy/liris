@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { getArtworkBlob } from '../services/db/library'
 import type { Track } from '../types/model'
+import { trackArtworkUrl } from '../lib/classical'
 
 /**
- * Resolve a track's artwork for display: remote URL for Jamendo, or an
- * object URL for local blob artwork (revoked on cleanup).
+ * Resolve a track's artwork for display: the composer's portrait for catalog
+ * recordings, the remote URL for Jamendo, or an object URL for local blob
+ * artwork (revoked on cleanup).
  */
 export function useTrackArtwork(track?: Track): string | undefined {
-  const remote = track?.artworkUrl
+  const remote = track ? trackArtworkUrl(track) : undefined
   const artworkKey = track?.local?.artworkKey
   const [blobUrl, setBlobUrl] = useState<string>()
 
